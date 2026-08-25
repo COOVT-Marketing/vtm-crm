@@ -217,6 +217,19 @@
     let autoRefreshTimer = null;
 
     // ====================== API HELPER ======================
+    function formatTimestamp(val) {
+  if (!val) return '—';
+  // If it's already clean
+  if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val)) {
+    return val;
+  }
+  // If it's a long date string or Date object
+  const d = new Date(val);
+  if (isNaN(d.getTime())) return val;
+  
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
     async function apiCall(action, params = {}) {
       const url = new URL(API_URL);
       url.searchParams.set("action", action);
@@ -369,7 +382,7 @@
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-[#2a322f] transition';
         tr.innerHTML = `
-          <td class="px-5 py-3 text-gray-300 text-sm">${r.dts || '—'}</td>
+          <td class="px-5 py-3 text-gray-300 text-sm">${formatTimestamp(r.dts)}</td>
           <td class="px-5 py-3 font-mono text-sm">${r.ani || '—'}</td>
           <td class="px-5 py-3 text-gray-300">${r.state || '—'}</td>
           <td class="px-5 py-3 text-gray-300">${r.call_duration_sec || '—'}s</td>
