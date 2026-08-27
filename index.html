@@ -318,33 +318,49 @@
     }
 
     function getFilteredCalls() {
-      const q = (document.getElementById('searchInput').value || '').toLowerCase().trim();
-      const from = document.getElementById('dateFrom').value;
-      const to = document.getElementById('dateTo').value;
-      const status = document.getElementById('statusFilter').value;
+  const q = (document.getElementById('searchInput').value || '').toLowerCase().trim();
+  const from = document.getElementById('dateFrom').value; // format: YYYY-MM-DD
+  const to   = document.getElementById('dateTo').value;   // format: YYYY-MM-DD
+  const status = document.getElementById('statusFilter').value;
 
-      return allCalls.filter(r => {
-        // Text search
-        if (q) {
-          const hay = `${r.ani || ''} ${r.state || ''} ${r.dts || ''}`.toLowerCase();
-          if (!hay.includes(q)) return false;
-        }
-
-        // Date range
-        if (from || to) {
-          const datePart = (r.dts || '').toString().slice(0, 10);
-          if (from && datePart < from) return false;
-          if (to && datePart > to) return false;
-        }
-
-        // Billable / Non-billable filter
-        const payout = Number(r.payout) || 0;
-        if (status === 'billable' && payout <= 0) return false;
-        if (status === 'nonbillable' && payout > 0) return false;
-
-        return true;
-      });
+  return allCalls.filter(r => {
+    // 1. Text search
+    if (q) {
+      const hay = `${r.ani || ''} ${r.state || ''} ${r.dts || ''}`.toLowerCase();
+      if (!hay.includes(q)) return false;
     }
+
+    // 2. Date range filter (more robust)
+    if (from || to) {
+      let recordDate = '';
+
+      if (r.dts) {
+        // Extract YYYY-MM-DD from any format
+        const match = String(r.dts).match(/(\d{4})-(\d{2})-(\d{2})/);
+        if (match) {
+          recordDate = match[0]; // "2026-08-27"
+        } else {
+          // Fallback
+          const d = new Date(r.dts);
+          if (!isNaN(d.getTime())) {
+            const pad = n => String(n).padStart(2, '0');
+            recordDate = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+          }
+        }
+      }
+
+      if (from && recordDate < from) return false;
+      if (to && recordDate > to) return false;
+    }
+
+    // 3. Status filter
+    const payout = Number(r.payout) || 0;
+    if (status === 'billable' && payout <= 0) return false;
+    if (status === 'nonbillable' && payout > 0) return false;
+
+    return true;
+  });
+}
 
     function applyFilters() {
       const filtered = getFilteredCalls();
