@@ -423,25 +423,39 @@
       });
     }
 
-    function renderMonthly(rows) {
-      const tbody = document.getElementById('monthlyBody');
-      tbody.innerHTML = '';
-      (rows || []).forEach(r => {
-        // Force clean YYYY-MM
-        let month = (r.month || '').toString();
-        if (month.length > 7) month = month.slice(0, 7);
-        if (month.includes('T')) month = month.split('T')[0].slice(0, 7);
-
-        const tr = document.createElement('tr');
-        tr.className = 'hover:bg-[#2a322f] transition';
-        tr.innerHTML = `
-          <td class="px-5 py-3">${month || '—'}</td>
-          <td class="px-5 py-3 text-[#FBB13C] font-medium">$${Number(r.total_payout || 0).toFixed(2)}</td>
-          <td class="px-5 py-3 text-gray-300">${r.total_calls || '—'}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
+  function renderMonthly(rows) {
+    const tbody = document.getElementById('monthlyBody');
+    tbody.innerHTML = '';
+  
+    (rows || []).forEach(r => {
+      let month = (r.month || '').toString().trim();
+  
+      // Force clean YYYY-MM format
+      if (month.length > 7) {
+        // Try to extract year-month
+        const match = month.match(/(\d{4})-(\d{2})/);
+        if (match) {
+          month = match[0];
+        } else {
+          // Fallback: try parsing as date
+          const d = new Date(month);
+          if (!isNaN(d.getTime())) {
+            const pad = n => String(n).padStart(2, '0');
+            month = `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
+          }
+        }
+      }
+  
+      const tr = document.createElement('tr');
+      tr.className = 'hover:bg-[#2a322f] transition';
+      tr.innerHTML = `
+        <td class="px-5 py-3">${month || '—'}</td>
+        <td class="px-5 py-3 text-[#FBB13C] font-medium">$${Number(r.total_payout || 0).toFixed(2)}</td>
+        <td class="px-5 py-3 text-gray-300">${r.total_calls || '—'}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
 
     function getStateStats() {
       const stats = {};
