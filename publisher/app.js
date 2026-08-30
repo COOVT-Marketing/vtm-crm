@@ -332,8 +332,8 @@
   }
 
   function getEffectivePayout(row) {
+    // Non-billable always $0; payout is read-only from sheet (admin only)
     if (row.billable === "nonbillable") return 0;
-    if (localPayouts[row._id] !== undefined) return localPayouts[row._id];
     return row.payout;
   }
 
@@ -460,57 +460,13 @@
         "<td>" + (escapeHtml(r.phone) || "—") + "</td>" +
         "<td>" + (escapeHtml(r.age) || "—") + "</td>" +
         "<td>" + (escapeHtml(r.state) || "—") + "</td>" +
-        "<td>" + (escapeHtml(r.zip) || "—") + "</td>" +
         '<td><span class="badge">' + (escapeHtml(r.company) || "—") + "</span></td>" +
-        "<td>" + (escapeHtml(r.campaign) || "—") + "</td>" +
-        "<td>" + (escapeHtml(r.did) || "—") + "</td>" +
         "<td>" + formatDuration(r.duration) + "</td>" +
         "<td>" + billableBadge(r.billable) + "</td>" +
-        "<td><input type=\"number\" class=\"payout-input\" step=\"0.01\" min=\"0\" value=\"" +
-        payout.toFixed(2) + "\" data-id=\"" + r._id + "\" " +
-        (isNonBillable
-          ? 'disabled title="Non-billable – payout locked at $0"'
-          : 'title="Edit payout (saves to sheet)"') +
-        " /></td>" +
-        '<td title="' + escapeHtml(r.comments) + '">' +
-        escapeHtml((r.comments || "").slice(0, 40)) +
-        ((r.comments || "").length > 40 ? "…" : "") +
-        "</td></tr>"
+        '<td class="payout-cell">' + formatCurrency(payout) + "</td>" +
+        "</tr>"
       );
     }).join("");
-
-    $$(".payout-input").forEach(function (inp) {
-      if (inp.disabled) return;
-      inp.addEventListener("change", async function (e) {
-        const id = e.target.dataset.id;
-        const row = filteredData.find(function (r) { return r._id === id; });
-        if (!row || row.billable === "nonbillable") return;
-
-        const newPayout = parseNumber(e.target.value);
-        localPayouts[id] = newPayout;
-        updateMetrics(filteredData);
-        showToast("Saving payout…");
-
-        try {
-          await fetch(APPS_SCRIPT_URL, {
-            method: "POST",
-            mode: "no-cors",
-            headers: { "Content-Type": "text/plain" },
-            body: JSON.stringify({
-              submissionType: "UPDATE_PAYOUT",
-              sheetName: "Auto",
-              timestamp: row.timestamp,
-              phone: row.phone,
-              payout: newPayout
-            })
-          });
-          showToast("Payout saved to sheet");
-        } catch (err) {
-          console.error(err);
-          showToast("Failed to save payout – check Apps Script deployment", 4000);
-        }
-      });
-    });
   }
 
   function exportCSV() {
@@ -519,8 +475,8 @@
       return;
     }
     const headers = [
-      "Timestamp", "Agent", "First Name", "Last Name", "Phone", "Age", "State", "Zip",
-      "Company", "Campaign", "DID", "Duration (sec)", "Billable Status", "Payout", "Comments"
+      "Timestamp", "Agent", "First Name", "Last Name", "Phone", "Age", "State",
+      "Company", "Duration (sec)", "Billable Status", "Payout"
     ];
     const lines = [headers.join(",")];
     filteredData.forEach(function (r) {
@@ -528,9 +484,9 @@
         r.billable === "billable" ? "Billable" :
         r.billable === "nonbillable" ? "Non-Billable" : "Unknown";
       const row = [
-        r.timestamp, r.agent, r.firstName, r.lastName, r.phone, r.age, r.state, r.zip,
-        r.company, r.campaign, r.did, r.duration || "", statusLabel,
-        getEffectivePayout(r).toFixed(2), r.comments
+        r.timestamp, r.agent, r.firstName, r.lastName, r.phone, r.age, r.state,
+        r.company, r.duration || "", statusLabel,
+        getEffectivePayout(r).toFixed(2)
       ].map(function (v) {
         return '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
       });
@@ -682,8 +638,8 @@
       '<div class="table-card">' +
       '<div class="table-header"><h2>Sales Records — ' + escapeHtml(companyName) + '</h2><span class="table-count" id="tableCount">0 records</span></div>' +
       '<div class="table-wrap"><table><thead><tr>' +
-      "<th>Timestamp</th><th>Agent</th><th>Name</th><th>Phone</th><th>Age</th><th>State</th><th>Zip</th>" +
-      "<th>Company</th><th>Campaign</th><th>DID</th><th>Duration</th><th>Status</th><th>Payout ($)</th><th>Comments</th>" +
+      "<th>Timestamp</th><th>Agent</th><th>Name</th><th>Phone</th><th>Age</th><th>State</th>" +
+      "<th>Company</th><th>Duration</th><th>Status</th><th>Payout ($)</th>" +
       '</tr></thead><tbody id="tableBody"></tbody></table>' +
       '<div id="emptyState" class="empty-state hidden"><i class="ti ti-database-off"></i><div>No records match your filters.</div></div>' +
       "</div></div>" +
@@ -725,7 +681,6 @@
     try {
       const data = await fetchSheetData();
       rawData = applyCompanyFilter(data);
-      localPayouts = {};
       populateAgentFilter(rawData);
       applyFilters();
       const lu = $("#lastUpdated");

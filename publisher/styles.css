@@ -646,3 +646,9 @@ tr:hover td {
   border-color: rgba(239, 68, 68, 0.3);
   color: #f87171;
 }
+
+.payout-cell {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--text);
+}
