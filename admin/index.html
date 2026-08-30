@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VTM CRM</title>
+  <link rel="icon" href="https://vocaltechmarketing.com/images/logo.png" type="image/png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #1F2421; }
+    .card {
+      background: #262c29;
+      border: 1px solid #323a36;
+      border-radius: 12px;
+    }
+    .input-dark {
+      background: #1a1f1c;
+      border: 1px solid #3a4340;
+      color: #F7F7F7;
+    }
+    .input-dark:focus {
+      outline: none;
+      border-color: #548888;
+      box-shadow: 0 0 0 3px rgba(84, 136, 136, 0.25);
+    }
+    .nav-link { color: #a0a8a4; transition: all 0.2s; }
+    .nav-link.active { color: #F7F7F7; border-bottom: 2px solid #548888; }
+    .nav-link:hover { color: #F7F7F7; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #1a1f1c; }
+    ::-webkit-scrollbar-thumb { background: #3a4340; border-radius: 3px; }
+  </style>
+</head>
+<body class="text-[#F7F7F7] min-h-screen">
+
+  <!-- LOGIN -->
+  <div id="loginScreen" class="min-h-screen flex items-center justify-center p-4">
+    <div class="card w-full max-w-md p-8 shadow-2xl">
+      <div class="text-center mb-8">
+        <img src="https://vocaltechmarketing.com/images/logo.png" alt="VTM" class="mx-auto h-16 w-auto mb-5">
+        <h1 class="text-2xl font-bold tracking-tight">VTM CRM</h1>
+        <p class="text-gray-400 text-sm mt-1">Call Analytics Portal</p>
+      </div>
+      <input id="passwordInput" type="password" placeholder="Enter password"
+             class="input-dark w-full px-4 py-3 rounded-lg mb-4 text-sm"
+             onkeypress="if(event.key==='Enter') login()">
+      <button onclick="login()" id="loginBtn"
+              class="w-full bg-[#548888] hover:bg-[#436d6d] text-white font-medium py-3 rounded-lg transition text-sm">
+        Sign In
+      </button>
+      <p id="loginError" class="text-red-400 text-sm mt-4 text-center hidden">Incorrect password</p>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="dashboard" class="hidden">
+    <header class="bg-[#1a1f1c] border-b border-[#323a36] sticky top-0 z-20">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-8">
+          <div class="flex items-center gap-3">
+            <img src="https://vocaltechmarketing.com/images/logo.png" alt="VTM" class="h-9 w-auto">
+            <div>
+              <h1 class="font-semibold leading-tight">VTM CRM</h1>
+              <p class="text-xs text-gray-400">Call Analytics</p>
+            </div>
+          </div>
+          <nav class="flex gap-6 text-sm font-medium">
+            <button onclick="showPage('overview')" id="navOverview" class="nav-link active pb-1">Overview</button>
+            <button onclick="showPage('analytics')" id="navAnalytics" class="nav-link pb-1">Analytics</button>
+          </nav>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="refreshData()" id="refreshBtn"
+                  class="px-3.5 py-2 bg-[#548888] hover:bg-[#436d6d] text-white text-sm font-medium rounded-lg transition flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            Refresh
+          </button>
+          <button onclick="logout()" class="px-3.5 py-2 bg-[#2a322f] hover:bg-[#353e3a] text-gray-300 text-sm font-medium rounded-lg transition">
+            Logout
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+
+      <!-- ==================== OVERVIEW ==================== -->
+      <div id="pageOverview" class="space-y-6">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="card p-5">
+            <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Total Calls</p>
+            <p id="metricCalls" class="text-3xl font-bold mt-2">—</p>
+          </div>
+          <div class="card p-5">
+            <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Total Payout</p>
+            <p id="metricPayout" class="text-3xl font-bold text-[#FBB13C] mt-2">—</p>
+          </div>
+          <div class="card p-5">
+            <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Avg Duration</p>
+            <p id="metricDuration" class="text-3xl font-bold mt-2">— <span class="text-sm font-normal text-gray-400">sec</span></p>
+          </div>
+          <div class="card p-5">
+            <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Avg Payout</p>
+            <p id="metricAvgPayout" class="text-3xl font-bold text-[#FBB13C] mt-2">—</p>
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="card p-4">
+          <div class="flex flex-wrap items-end gap-3">
+            <div class="flex-1 min-w-[160px]">
+              <label class="block text-xs text-gray-400 mb-1.5">Search</label>
+              <input id="searchInput" type="text" placeholder="ANI, state or date..."
+                     class="input-dark w-full px-3 py-2 rounded-lg text-sm" oninput="applyFilters()">
+            </div>
+            <div>
+              <label class="block text-xs text-gray-400 mb-1.5">From</label>
+              <input id="dateFrom" type="date" class="input-dark px-3 py-2 rounded-lg text-sm" onchange="applyFilters()">
+            </div>
+            <div>
+              <label class="block text-xs text-gray-400 mb-1.5">To</label>
+              <input id="dateTo" type="date" class="input-dark px-3 py-2 rounded-lg text-sm" onchange="applyFilters()">
+            </div>
+            <div>
+              <label class="block text-xs text-gray-400 mb-1.5">Status</label>
+              <select id="statusFilter" class="input-dark px-3 py-2 rounded-lg text-sm" onchange="applyFilters()">
+                <option value="all">All</option>
+                <option value="billable">Billable</option>
+                <option value="nonbillable">Non-billable</option>
+              </select>
+            </div>
+            <button onclick="clearFilters()" class="px-3 py-2 bg-[#2a322f] hover:bg-[#353e3a] text-gray-300 text-sm rounded-lg">
+              Clear
+            </button>
+            <button onclick="exportCSV()" class="px-3.5 py-2 bg-[#F7F7F7] hover:bg-white text-[#1F2421] text-sm font-medium rounded-lg ml-auto">
+              Export CSV
+            </button>
+          </div>
+        </div>
+
+        <!-- Call Details -->
+        <div class="card overflow-hidden">
+          <div class="px-5 py-4 border-b border-[#323a36] flex items-center justify-between">
+            <h2 class="font-semibold">Call Details</h2>
+            <span id="rowCount" class="text-xs text-gray-400"></span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="text-left text-xs text-gray-400 uppercase tracking-wider bg-[#1a1f1c]">
+                  <th class="px-5 py-3 font-medium">Timestamp</th>
+                  <th class="px-5 py-3 font-medium">ANI</th>
+                  <th class="px-5 py-3 font-medium">State</th>
+                  <th class="px-5 py-3 font-medium">Duration</th>
+                  <th class="px-5 py-3 font-medium">Payout</th>
+                  <th class="px-5 py-3 font-medium">Status</th>
+                </tr>
+              </thead>
+              <tbody id="callsBody" class="divide-y divide-[#323a36]"></tbody>
+            </table>
+          </div>
+          <div id="noCalls" class="hidden py-16 text-center">
+            <p class="text-gray-500 text-sm">No calls match the current filters</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== ANALYTICS ==================== -->
+      <div id="pageAnalytics" class="hidden space-y-6">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="card p-5">
+            <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Total Calls</p>
+            <p id="metricTotalCallsAnalytics" class="text-3xl font-bold text-white mt-2">—</p>
+          </div>
+          <div class="card p-5">
+            <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Billable Calls</p>
+            <p id="metricBillable" class="text-3xl font-bold text-[#548888] mt-2">—</p>
+          </div>
+          <div class="card p-5">
+            <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Non-Billable Calls</p>
+            <p id="metricNonBillable" class="text-3xl font-bold text-gray-400 mt-2">—</p>
+          </div>
+        </div>
+
+        <!-- State Summary -->
+        <div class="card overflow-hidden">
+          <div class="px-5 py-4 border-b border-[#323a36]">
+            <h2 class="font-semibold">State Summary</h2>
+            <p class="text-xs text-gray-400 mt-1">Calls, total payout and average bid per state</p>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="text-left text-xs text-gray-400 uppercase tracking-wider bg-[#1a1f1c]">
+                  <th class="px-5 py-3 font-medium">State</th>
+                  <th class="px-5 py-3 font-medium">Calls</th>
+                  <th class="px-5 py-3 font-medium">Total Payout</th>
+                  <th class="px-5 py-3 font-medium">Average Bid</th>
+                </tr>
+              </thead>
+              <tbody id="stateBody" class="divide-y divide-[#323a36]"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Monthly Summary -->
+        <div class="card overflow-hidden">
+          <div class="px-5 py-4 border-b border-[#323a36]">
+            <h2 class="font-semibold">Monthly Summary</h2>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="text-left text-xs text-gray-400 uppercase tracking-wider bg-[#1a1f1c]">
+                  <th class="px-5 py-3 font-medium">Month</th>
+                  <th class="px-5 py-3 font-medium">Total Payout</th>
+                  <th class="px-5 py-3 font-medium">Total Calls</th>
+                </tr>
+              </thead>
+              <tbody id="monthlyBody" class="divide-y divide-[#323a36]"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // ====================== CONFIG ======================
+    const API_URL = "https://script.google.com/macros/s/AKfycbw7CBJksXRQFzwTvwCWUKfp-S_1BUUNfo4c4y-22emeX81jRa0PRHkiiJ8lFwRQpMAqVA/exec";
+
+    let allCalls = [];
+    let allMonthly = [];
+    let autoRefreshTimer = null;
+
+    // ====================== LOGIN PERSISTENCE ======================
+    function checkLoginStatus() {
+      if (localStorage.getItem('vtm_logged_in') === 'true') {
+        document.getElementById('loginScreen').classList.add('hidden');
+        document.getElementById('dashboard').classList.remove('hidden');
+        loadAll();
+        autoRefreshTimer = setInterval(loadAll, 60000);
+      }
+    }
+
+    function formatTimestamp(val) {
+      if (!val) return '—';
+      if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val)) return val;
+      const d = new Date(val);
+      if (isNaN(d.getTime())) return val;
+      const pad = n => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    }
+
+    // ====================== API ======================
+    async function apiCall(action, params = {}) {
+      const url = new URL(API_URL);
+      url.searchParams.set("action", action);
+      Object.keys(params).forEach(k => url.searchParams.set(k, params[k]));
+      const res = await fetch(url.toString());
+      if (!res.ok) throw new Error("Network error");
+      return await res.json();
+    }
+
+    // ====================== AUTH ======================
+    async function login() {
+      const pwd = document.getElementById('passwordInput').value;
+      const btn = document.getElementById('loginBtn');
+      btn.disabled = true;
+      btn.textContent = "Signing in...";
+
+      try {
+        const result = await apiCall("login", { password: pwd });
+        if (result.success) {
+          localStorage.setItem('vtm_logged_in', 'true');
+          document.getElementById('loginScreen').classList.add('hidden');
+          document.getElementById('dashboard').classList.remove('hidden');
+          loadAll();
+          autoRefreshTimer = setInterval(loadAll, 60000);
+        } else {
+          document.getElementById('loginError').classList.remove('hidden');
+        }
+      } catch (err) {
+        alert("Login failed: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Sign In";
+      }
+    }
+
+    function logout() {
+      if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+      localStorage.removeItem('vtm_logged_in');
+      document.getElementById('dashboard').classList.add('hidden');
+      document.getElementById('loginScreen').classList.remove('hidden');
+      document.getElementById('passwordInput').value = '';
+      document.getElementById('loginError').classList.add('hidden');
+    }
+
+    // ====================== DATA ======================
+    async function loadAll() {
+      try {
+        const [callsRes, monthlyRes] = await Promise.all([
+          apiCall("getCalls"),
+          apiCall("getMonthly")
+        ]);
+        allCalls = callsRes.data || [];
+        allMonthly = monthlyRes.data || [];
+        applyFilters();
+        renderMonthly(allMonthly);
+        if (!document.getElementById('pageAnalytics').classList.contains('hidden')) {
+          renderStateTable();
+          updateBillableMetrics();
+        }
+      } catch (err) {
+        console.error("Load failed:", err);
+      }
+    }
+
+    function getFilteredCalls() {
+  const q = (document.getElementById('searchInput').value || '').toLowerCase().trim();
+  const from = document.getElementById('dateFrom').value; // format: YYYY-MM-DD
+  const to   = document.getElementById('dateTo').value;   // format: YYYY-MM-DD
+  const status = document.getElementById('statusFilter').value;
+
+  return allCalls.filter(r => {
+    // 1. Text search
+    if (q) {
+      const hay = `${r.ani || ''} ${r.state || ''} ${r.dts || ''}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+
+    // 2. Date range filter (more robust)
+    if (from || to) {
+      let recordDate = '';
+
+      if (r.dts) {
+        // Extract YYYY-MM-DD from any format
+        const match = String(r.dts).match(/(\d{4})-(\d{2})-(\d{2})/);
+        if (match) {
+          recordDate = match[0]; // "2026-08-27"
+        } else {
+          // Fallback
+          const d = new Date(r.dts);
+          if (!isNaN(d.getTime())) {
+            const pad = n => String(n).padStart(2, '0');
+            recordDate = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+          }
+        }
+      }
+
+      if (from && recordDate < from) return false;
+      if (to && recordDate > to) return false;
+    }
+
+    // 3. Status filter
+    const payout = Number(r.payout) || 0;
+    if (status === 'billable' && payout <= 0) return false;
+    if (status === 'nonbillable' && payout > 0) return false;
+
+    return true;
+  });
+}
+
+    function applyFilters() {
+      const filtered = getFilteredCalls();
+      renderCalls(filtered);
+      updateMetrics(filtered);
+    }
+
+    function clearFilters() {
+      document.getElementById('searchInput').value = '';
+      document.getElementById('dateFrom').value = '';
+      document.getElementById('dateTo').value = '';
+      document.getElementById('statusFilter').value = 'all';
+      applyFilters();
+    }
+
+    function updateMetrics(rows) {
+      if (!rows || rows.length === 0) {
+        document.getElementById('metricCalls').textContent = '0';
+        document.getElementById('metricPayout').textContent = '$0.00';
+        document.getElementById('metricDuration').innerHTML = '0 <span class="text-sm font-normal text-gray-400">sec</span>';
+        document.getElementById('metricAvgPayout').textContent = '$0.00';
+        return;
+      }
+      let totalPayout = 0, totalDuration = 0;
+      rows.forEach(c => {
+        totalPayout += Number(c.payout) || 0;
+        totalDuration += Number(c.call_duration_sec) || 0;
+      });
+      document.getElementById('metricCalls').textContent = rows.length;
+      document.getElementById('metricPayout').textContent = '$' + totalPayout.toFixed(2);
+      document.getElementById('metricDuration').innerHTML = Math.round(totalDuration / rows.length) + ' <span class="text-sm font-normal text-gray-400">sec</span>';
+      document.getElementById('metricAvgPayout').textContent = '$' + (totalPayout / rows.length).toFixed(2);
+    }
+
+    function updateBillableMetrics() {
+      let billable = 0, nonBillable = 0;
+      allCalls.forEach(c => {
+        if (Number(c.payout) > 0) billable++;
+        else nonBillable++;
+      });
+      document.getElementById('metricTotalCallsAnalytics').textContent = allCalls.length;
+      document.getElementById('metricBillable').textContent = billable;
+      document.getElementById('metricNonBillable').textContent = nonBillable;
+    }
+
+    function renderCalls(rows) {
+      const tbody = document.getElementById('callsBody');
+      const noData = document.getElementById('noCalls');
+      const rowCount = document.getElementById('rowCount');
+      tbody.innerHTML = '';
+      rowCount.textContent = rows.length ? `${rows.length} record${rows.length !== 1 ? 's' : ''}` : '';
+
+      if (!rows || rows.length === 0) {
+        noData.classList.remove('hidden');
+        return;
+      }
+      noData.classList.add('hidden');
+
+      rows.forEach(r => {
+        const payout = Number(r.payout) || 0;
+        const status = payout > 0
+          ? '<span class="px-2 py-0.5 rounded text-xs font-medium bg-[#548888]/20 text-[#7ab8b8]">Billable</span>'
+          : '<span class="px-2 py-0.5 rounded text-xs font-medium bg-gray-700 text-gray-400">Non-billable</span>';
+
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-[#2a322f] transition';
+        tr.innerHTML = `
+          <td class="px-5 py-3 text-gray-300 text-sm">${formatTimestamp(r.dts)}</td>
+          <td class="px-5 py-3 font-mono text-sm">${r.ani || '—'}</td>
+          <td class="px-5 py-3 text-gray-300">${r.state || '—'}</td>
+          <td class="px-5 py-3 text-gray-300">${r.call_duration_sec || '—'}s</td>
+          <td class="px-5 py-3 text-[#FBB13C] font-medium">$${payout.toFixed(2)}</td>
+          <td class="px-5 py-3">${status}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+  function renderMonthly(rows) {
+    const tbody = document.getElementById('monthlyBody');
+    tbody.innerHTML = '';
+  
+    (rows || []).forEach(r => {
+      let month = (r.month || '').toString().trim();
+  
+      // Force clean YYYY-MM format
+      if (month.length > 7) {
+        // Try to extract year-month
+        const match = month.match(/(\d{4})-(\d{2})/);
+        if (match) {
+          month = match[0];
+        } else {
+          // Fallback: try parsing as date
+          const d = new Date(month);
+          if (!isNaN(d.getTime())) {
+            const pad = n => String(n).padStart(2, '0');
+            month = `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
+          }
+        }
+      }
+  
+      const tr = document.createElement('tr');
+      tr.className = 'hover:bg-[#2a322f] transition';
+      tr.innerHTML = `
+        <td class="px-5 py-3">${month || '—'}</td>
+        <td class="px-5 py-3 text-[#FBB13C] font-medium">$${Number(r.total_payout || 0).toFixed(2)}</td>
+        <td class="px-5 py-3 text-gray-300">${r.total_calls || '—'}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+    function getStateStats() {
+      const stats = {};
+      allCalls.forEach(c => {
+        const state = (c.state || 'Unknown').toString().trim().toUpperCase() || 'Unknown';
+        if (!stats[state]) stats[state] = { count: 0, totalPayout: 0 };
+        stats[state].count += 1;
+        stats[state].totalPayout += Number(c.payout) || 0;
+      });
+      return Object.keys(stats).map(state => ({
+        state,
+        calls: stats[state].count,
+        totalPayout: stats[state].totalPayout,
+        avgBid: stats[state].count ? stats[state].totalPayout / stats[state].count : 0
+      })).sort((a, b) => b.avgBid - a.avgBid);
+    }
+
+    function renderStateTable() {
+      const stats = getStateStats();
+      const tbody = document.getElementById('stateBody');
+      tbody.innerHTML = '';
+      if (stats.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="px-5 py-8 text-center text-gray-500">No data yet</td></tr>`;
+        return;
+      }
+      stats.forEach(s => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-[#2a322f] transition';
+        tr.innerHTML = `
+          <td class="px-5 py-3 font-medium">${s.state}</td>
+          <td class="px-5 py-3 text-gray-300">${s.calls}</td>
+          <td class="px-5 py-3 text-[#FBB13C]">$${s.totalPayout.toFixed(2)}</td>
+          <td class="px-5 py-3 text-[#FBB13C] font-medium">$${s.avgBid.toFixed(2)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function showPage(page) {
+      document.getElementById('pageOverview').classList.toggle('hidden', page !== 'overview');
+      document.getElementById('pageAnalytics').classList.toggle('hidden', page !== 'analytics');
+      document.getElementById('navOverview').classList.toggle('active', page === 'overview');
+      document.getElementById('navAnalytics').classList.toggle('active', page === 'analytics');
+      if (page === 'analytics') {
+        renderStateTable();
+        updateBillableMetrics();
+      }
+    }
+
+    async function refreshData() {
+      const btn = document.getElementById('refreshBtn');
+      btn.disabled = true;
+      btn.innerHTML = `<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/></svg> Refreshing...`;
+      try {
+        const res = await apiCall("refresh");
+        if (res.success) await loadAll();
+        else alert("Error: " + res.message);
+      } catch (err) {
+        alert("Failed: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> Refresh`;
+      }
+    }
+
+    function exportCSV() {
+      const rows = getFilteredCalls();
+      if (!rows.length) { alert('No data to export'); return; }
+      const headers = ['dts','ani','state','call_duration_sec','payout','status'];
+      const csvRows = rows.map(r => {
+        const payout = Number(r.payout) || 0;
+        const status = payout > 0 ? 'Billable' : 'Non-billable';
+        return [r.dts || '', r.ani || '', r.state || '', r.call_duration_sec || '', payout.toFixed(2), status]
+          .map(val => String(val).includes(',') || String(val).includes('"') ? `"${String(val).replace(/"/g, '""')}"` : val)
+          .join(',');
+      });
+      const csv = [headers.join(',')].concat(csvRows).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `vtm-calls-${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // Start
+    checkLoginStatus();
+  </script>
+</body>
+</html>
