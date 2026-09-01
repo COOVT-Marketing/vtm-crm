@@ -1,536 +1,246 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VTM CRM</title>
-  <link rel="icon" href="https://vocaltechmarketing.com/images/logo.png" type="image/png">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #1F2421; }
-    .card {
-      background: #262c29;
-      border: 1px solid #323a36;
-      border-radius: 12px;
-    }
-    .input-dark {
-      background: #1a1f1c;
-      border: 1px solid #3a4340;
-      color: #F7F7F7;
-    }
-    .input-dark:focus {
-      outline: none;
-      border-color: #548888;
-      box-shadow: 0 0 0 3px rgba(84, 136, 136, 0.25);
-    }
-    .nav-link { color: #a0a8a4; transition: all 0.2s; }
-    .nav-link.active { color: #F7F7F7; border-bottom: 2px solid #548888; }
-    .nav-link:hover { color: #F7F7F7; }
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: #1a1f1c; }
-    ::-webkit-scrollbar-thumb { background: #3a4340; border-radius: 3px; }
-
-    /* Bank-style hidden payout amounts — reveal on hover */
-    .payout-hidden {
-      filter: blur(6px);
-      transition: filter 0.2s ease;
-      cursor: pointer;
-      user-select: none;
-    }
-    .payout-hidden:hover {
-      filter: blur(0);
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>VTM CRM</title>
+<link rel="icon" href="https://vocaltechmarketing.com/images/logo.png" type="image/png">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+:root{--bg:#121614;--surface:#1c211e;--surface2:#242a26;--border:#2e3531;--border-h:#3a4340;--text:#f0f2f1;--muted:#8a948f;--accent:#4a9e9e;--accent-h:#3d8585;--gold:#f0b429;--gold-dim:rgba(240,180,41,.15);--danger:#e85d5d;--radius:14px;--shadow:0 4px 24px rgba(0,0,0,.35)}
+*{box-sizing:border-box}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;margin:0;-webkit-font-smoothing:antialiased}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);transition:border-color .2s,box-shadow .2s}
+.card:hover{border-color:var(--border-h)}
+.metric-card{position:relative;overflow:hidden}
+.metric-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:.6}
+.input-dark{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:10px;transition:border-color .2s,box-shadow .2s}
+.input-dark:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(74,158,158,.2)}
+.input-dark::placeholder{color:var(--muted)}
+.nav-link{color:var(--muted);transition:color .2s,border-color .2s;border-bottom:2px solid transparent;padding-bottom:4px}
+.nav-link.active{color:var(--text);border-bottom-color:var(--accent)}
+.nav-link:hover{color:var(--text)}
+.btn-primary{background:var(--accent);color:#fff;border:none;border-radius:10px;font-weight:500;transition:background .2s,transform .1s}
+.btn-primary:hover{background:var(--accent-h)}
+.btn-primary:active{transform:scale(.98)}
+.btn-ghost{background:var(--surface2);color:var(--muted);border:1px solid var(--border);border-radius:10px;font-weight:500;transition:background .2s,color .2s}
+.btn-ghost:hover{background:var(--border);color:var(--text)}
+.btn-export{background:var(--text);color:var(--bg);border:none;border-radius:10px;font-weight:600;transition:opacity .2s}
+.btn-export:hover{opacity:.9}
+.payout-hidden{filter:blur(7px);transition:filter .25s ease;cursor:pointer;user-select:none}
+.payout-hidden:hover{filter:blur(0)}
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%}
+thead tr{background:var(--surface2)}
+tbody tr{transition:background .15s}
+tbody tr:hover{background:rgba(74,158,158,.06)}
+.status-billable{background:rgba(74,158,158,.18);color:#7bc4c4;border-radius:6px;font-size:11px;font-weight:600;padding:3px 8px;letter-spacing:.02em}
+.status-non{background:rgba(138,148,143,.12);color:var(--muted);border-radius:6px;font-size:11px;font-weight:600;padding:3px 8px}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:var(--border-h)}
+.login-glow{box-shadow:0 0 60px rgba(74,158,158,.12),var(--shadow)}
+header{backdrop-filter:blur(12px);background:rgba(18,22,20,.85)}
+.fade-in{animation:fadeIn .35s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+</style>
 </head>
-<body class="text-[#F7F7F7] min-h-screen">
-  <!-- LOGIN -->
-  <div id="loginScreen" class="min-h-screen flex items-center justify-center p-4">
-    <div class="card w-full max-w-md p-8 shadow-2xl">
-      <div class="text-center mb-8">
-        <img src="https://vocaltechmarketing.com/images/logo.png" alt="VTM" class="mx-auto h-16 w-auto mb-5">
-        <h1 class="text-2xl font-bold tracking-tight">VTM CRM</h1>
-        <p class="text-gray-400 text-sm mt-1">Call Analytics Portal</p>
-      </div>
-      <input id="passwordInput" type="password" placeholder="Enter password"
-             class="input-dark w-full px-4 py-3 rounded-lg mb-4 text-sm"
-             onkeypress="if(event.key==='Enter') login()">
-      <button onclick="login()" id="loginBtn"
-              class="w-full bg-[#548888] hover:bg-[#436d6d] text-white font-medium py-3 rounded-lg transition text-sm">
-        Sign In
-      </button>
-      <p id="loginError" class="text-red-400 text-sm mt-4 text-center hidden">Incorrect password</p>
-    </div>
-  </div>
-  <!-- DASHBOARD -->
-  <div id="dashboard" class="hidden">
-    <header class="bg-[#1a1f1c] border-b border-[#323a36] sticky top-0 z-20">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-4">
-        <div class="flex items-center gap-8">
-          <div class="flex items-center gap-3">
-            <img src="https://vocaltechmarketing.com/images/logo.png" alt="VTM" class="h-9 w-auto">
-            <div>
-              <h1 class="font-semibold leading-tight">VTM CRM</h1>
-              <p class="text-xs text-gray-400">Call Analytics</p>
-            </div>
-          </div>
-          <nav class="flex gap-6 text-sm font-medium">
-            <button onclick="showPage('overview')" id="navOverview" class="nav-link active pb-1">Overview</button>
-            <button onclick="showPage('analytics')" id="navAnalytics" class="nav-link pb-1">Analytics</button>
-          </nav>
-        </div>
-        <div class="flex items-center gap-2">
-          <button onclick="refreshData()" id="refreshBtn"
-                  class="px-3.5 py-2 bg-[#548888] hover:bg-[#436d6d] text-white text-sm font-medium rounded-lg transition flex items-center gap-2">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-            Refresh
-          </button>
-          <button onclick="logout()" class="px-3.5 py-2 bg-[#2a322f] hover:bg-[#353e3a] text-gray-300 text-sm font-medium rounded-lg transition">
-            Logout
-          </button>
-        </div>
-      </div>
-    </header>
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-      <!-- ==================== OVERVIEW ==================== -->
-      <div id="pageOverview" class="space-y-6">
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div class="card p-5">
-            <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Total Calls</p>
-            <p id="metricCalls" class="text-3xl font-bold mt-2">—</p>
-          </div>
-          <div class="card p-5">
-            <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Total Payout</p>
-            <p id="metricPayout" class="text-3xl font-bold text-[#FBB13C] mt-2 payout-hidden">—</p>
-          </div>
-          <div class="card p-5">
-            <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Avg Duration</p>
-            <p id="metricDuration" class="text-3xl font-bold mt-2">— <span class="text-sm font-normal text-gray-400">sec</span></p>
-          </div>
-          <div class="card p-5">
-            <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Avg Payout</p>
-            <p id="metricAvgPayout" class="text-3xl font-bold text-[#FBB13C] mt-2 payout-hidden">—</p>
-          </div>
-        </div>
-        <!-- Filters -->
-        <div class="card p-4">
-          <div class="flex flex-wrap items-end gap-3">
-            <div class="flex-1 min-w-[160px]">
-              <label class="block text-xs text-gray-400 mb-1.5">Search</label>
-              <input id="searchInput" type="text" placeholder="ANI, state or date..."
-                     class="input-dark w-full px-3 py-2 rounded-lg text-sm" oninput="applyFilters()">
-            </div>
-            <div>
-              <label class="block text-xs text-gray-400 mb-1.5">From</label>
-              <input id="dateFrom" type="date" class="input-dark px-3 py-2 rounded-lg text-sm" onchange="applyFilters()">
-            </div>
-            <div>
-              <label class="block text-xs text-gray-400 mb-1.5">To</label>
-              <input id="dateTo" type="date" class="input-dark px-3 py-2 rounded-lg text-sm" onchange="applyFilters()">
-            </div>
-            <div>
-              <label class="block text-xs text-gray-400 mb-1.5">Status</label>
-              <select id="statusFilter" class="input-dark px-3 py-2 rounded-lg text-sm" onchange="applyFilters()">
-                <option value="all">All</option>
-                <option value="billable">Billable</option>
-                <option value="nonbillable">Non-billable</option>
-              </select>
-            </div>
-            <button onclick="clearFilters()" class="px-3 py-2 bg-[#2a322f] hover:bg-[#353e3a] text-gray-300 text-sm rounded-lg">
-              Clear
-            </button>
-            <button onclick="exportCSV()" class="px-3.5 py-2 bg-[#F7F7F7] hover:bg-white text-[#1F2421] text-sm font-medium rounded-lg ml-auto">
-              Export CSV
-            </button>
-          </div>
-        </div>
-        <!-- Call Details -->
-        <div class="card overflow-hidden">
-          <div class="px-5 py-4 border-b border-[#323a36] flex items-center justify-between">
-            <h2 class="font-semibold">Call Details</h2>
-            <span id="rowCount" class="text-xs text-gray-400"></span>
-          </div>
-          <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="text-left text-xs text-gray-400 uppercase tracking-wider bg-[#1a1f1c]">
-                  <th class="px-5 py-3 font-medium">Timestamp</th>
-                  <th class="px-5 py-3 font-medium">ANI</th>
-                  <th class="px-5 py-3 font-medium">State</th>
-                  <th class="px-5 py-3 font-medium">Duration</th>
-                  <th class="px-5 py-3 font-medium">Payout</th>
-                  <th class="px-5 py-3 font-medium">Status</th>
-                </tr>
-              </thead>
-              <tbody id="callsBody" class="divide-y divide-[#323a36]"></tbody>
-            </table>
-          </div>
-          <div id="noCalls" class="hidden py-16 text-center">
-            <p class="text-gray-500 text-sm">No calls match the current filters</p>
-          </div>
-        </div>
-      </div>
-      <!-- ==================== ANALYTICS ==================== -->
-      <div id="pageAnalytics" class="hidden space-y-6">
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div class="card p-5">
-            <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Total Calls</p>
-            <p id="metricTotalCallsAnalytics" class="text-3xl font-bold text-white mt-2">—</p>
-          </div>
-          <div class="card p-5">
-            <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Billable Calls</p>
-            <p id="metricBillable" class="text-3xl font-bold text-[#548888] mt-2">—</p>
-          </div>
-          <div class="card p-5">
-            <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Non-Billable Calls</p>
-            <p id="metricNonBillable" class="text-3xl font-bold text-gray-400 mt-2">—</p>
-          </div>
-        </div>
-        <!-- State Summary -->
-        <div class="card overflow-hidden">
-          <div class="px-5 py-4 border-b border-[#323a36]">
-            <h2 class="font-semibold">State Summary</h2>
-            <p class="text-xs text-gray-400 mt-1">Calls, total payout and average bid per state</p>
-          </div>
-          <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="text-left text-xs text-gray-400 uppercase tracking-wider bg-[#1a1f1c]">
-                  <th class="px-5 py-3 font-medium">State</th>
-                  <th class="px-5 py-3 font-medium">Calls</th>
-                  <th class="px-5 py-3 font-medium">Total Payout</th>
-                  <th class="px-5 py-3 font-medium">Average Bid</th>
-                </tr>
-              </thead>
-              <tbody id="stateBody" class="divide-y divide-[#323a36]"></tbody>
-            </table>
-          </div>
-        </div>
-        <!-- Monthly Summary -->
-        <div class="card overflow-hidden">
-          <div class="px-5 py-4 border-b border-[#323a36]">
-            <h2 class="font-semibold">Monthly Summary</h2>
-          </div>
-          <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="text-left text-xs text-gray-400 uppercase tracking-wider bg-[#1a1f1c]">
-                  <th class="px-5 py-3 font-medium">Month</th>
-                  <th class="px-5 py-3 font-medium">Total Payout</th>
-                  <th class="px-5 py-3 font-medium">Total Calls</th>
-                </tr>
-              </thead>
-              <tbody id="monthlyBody" class="divide-y divide-[#323a36]"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </main>
-  </div>
-  <script>
-    // ====================== CONFIG ======================
-    const API_URL = "https://script.google.com/macros/s/AKfycbw7CBJksXRQFzwTvwCWUKfp-S_1BUUNfo4c4y-22emeX81jRa0PRHkiiJ8lFwRQpMAqVA/exec";
-    let allCalls = [];
-    let allMonthly = [];
-    let autoRefreshTimer = null;
-    // ====================== LOGIN PERSISTENCE ======================
-    function checkLoginStatus() {
-      if (localStorage.getItem('vtm_logged_in') === 'true') {
-        document.getElementById('loginScreen').classList.add('hidden');
-        document.getElementById('dashboard').classList.remove('hidden');
-        loadAll();
-        autoRefreshTimer = setInterval(loadAll, 60000);
-      }
-    }
-    function formatTimestamp(val) {
-      if (!val) return '—';
-      if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val)) return val;
-      const d = new Date(val);
-      if (isNaN(d.getTime())) return val;
-      const pad = n => String(n).padStart(2, '0');
-      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-    }
-    // ====================== API ======================
-    async function apiCall(action, params = {}) {
-      const url = new URL(API_URL);
-      url.searchParams.set("action", action);
-      Object.keys(params).forEach(k => url.searchParams.set(k, params[k]));
-      const res = await fetch(url.toString());
-      if (!res.ok) throw new Error("Network error");
-      return await res.json();
-    }
-    // ====================== AUTH ======================
-    async function login() {
-      const pwd = document.getElementById('passwordInput').value;
-      const btn = document.getElementById('loginBtn');
-      btn.disabled = true;
-      btn.textContent = "Signing in...";
-      try {
-        const result = await apiCall("login", { password: pwd });
-        if (result.success) {
-          localStorage.setItem('vtm_logged_in', 'true');
-          document.getElementById('loginScreen').classList.add('hidden');
-          document.getElementById('dashboard').classList.remove('hidden');
-          loadAll();
-          autoRefreshTimer = setInterval(loadAll, 60000);
-        } else {
-          document.getElementById('loginError').classList.remove('hidden');
-        }
-      } catch (err) {
-        alert("Login failed: " + err.message);
-      } finally {
-        btn.disabled = false;
-        btn.textContent = "Sign In";
-      }
-    }
-    function logout() {
-      if (autoRefreshTimer) clearInterval(autoRefreshTimer);
-      localStorage.removeItem('vtm_logged_in');
-      document.getElementById('dashboard').classList.add('hidden');
-      document.getElementById('loginScreen').classList.remove('hidden');
-      document.getElementById('passwordInput').value = '';
-      document.getElementById('loginError').classList.add('hidden');
-    }
-    // ====================== DATA ======================
-    async function loadAll() {
-      try {
-        const [callsRes, monthlyRes] = await Promise.all([
-          apiCall("getCalls"),
-          apiCall("getMonthly")
-        ]);
-        allCalls = callsRes.data || [];
-        allMonthly = monthlyRes.data || [];
-        applyFilters();
-        renderMonthly(allMonthly);
-        if (!document.getElementById('pageAnalytics').classList.contains('hidden')) {
-          renderStateTable();
-          updateBillableMetrics();
-        }
-      } catch (err) {
-        console.error("Load failed:", err);
-      }
-    }
-    function getFilteredCalls() {
-  const q = (document.getElementById('searchInput').value || '').toLowerCase().trim();
-  const from = document.getElementById('dateFrom').value; // format: YYYY-MM-DD
-  const to   = document.getElementById('dateTo').value;   // format: YYYY-MM-DD
-  const status = document.getElementById('statusFilter').value;
-  return allCalls.filter(r => {
-    // 1. Text search
-    if (q) {
-      const hay = `${r.ani || ''} ${r.state || ''} ${r.dts || ''}`.toLowerCase();
-      if (!hay.includes(q)) return false;
-    }
-    // 2. Date range filter (more robust)
-    if (from || to) {
-      let recordDate = '';
-      if (r.dts) {
-        // Extract YYYY-MM-DD from any format
-        const match = String(r.dts).match(/(\d{4})-(\d{2})-(\d{2})/);
-        if (match) {
-          recordDate = match[0]; // "2026-08-27"
-        } else {
-          // Fallback
-          const d = new Date(r.dts);
-          if (!isNaN(d.getTime())) {
-            const pad = n => String(n).padStart(2, '0');
-            recordDate = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-          }
-        }
-      }
-      if (from && recordDate < from) return false;
-      if (to && recordDate > to) return false;
-    }
-    // 3. Status filter
-    const payout = Number(r.payout) || 0;
-    if (status === 'billable' && payout <= 0) return false;
-    if (status === 'nonbillable' && payout > 0) return false;
-    return true;
-  });
-}
-    function applyFilters() {
-      const filtered = getFilteredCalls();
-      renderCalls(filtered);
-      updateMetrics(filtered);
-    }
-    function clearFilters() {
-      document.getElementById('searchInput').value = '';
-      document.getElementById('dateFrom').value = '';
-      document.getElementById('dateTo').value = '';
-      document.getElementById('statusFilter').value = 'all';
-      applyFilters();
-    }
-    function updateMetrics(rows) {
-      if (!rows || rows.length === 0) {
-        document.getElementById('metricCalls').textContent = '0';
-        document.getElementById('metricPayout').textContent = '$0.00';
-        document.getElementById('metricDuration').innerHTML = '0 <span class="text-sm font-normal text-gray-400">sec</span>';
-        document.getElementById('metricAvgPayout').textContent = '$0.00';
-        return;
-      }
-      let totalPayout = 0, totalDuration = 0;
-      rows.forEach(c => {
-        totalPayout += Number(c.payout) || 0;
-        totalDuration += Number(c.call_duration_sec) || 0;
-      });
-      document.getElementById('metricCalls').textContent = rows.length;
-      document.getElementById('metricPayout').textContent = '$' + totalPayout.toFixed(2);
-      document.getElementById('metricDuration').innerHTML = Math.round(totalDuration / rows.length) + ' <span class="text-sm font-normal text-gray-400">sec</span>';
-      document.getElementById('metricAvgPayout').textContent = '$' + (totalPayout / rows.length).toFixed(2);
-    }
-    function updateBillableMetrics() {
-      let billable = 0, nonBillable = 0;
-      allCalls.forEach(c => {
-        if (Number(c.payout) > 0) billable++;
-        else nonBillable++;
-      });
-      document.getElementById('metricTotalCallsAnalytics').textContent = allCalls.length;
-      document.getElementById('metricBillable').textContent = billable;
-      document.getElementById('metricNonBillable').textContent = nonBillable;
-    }
-    function renderCalls(rows) {
-      const tbody = document.getElementById('callsBody');
-      const noData = document.getElementById('noCalls');
-      const rowCount = document.getElementById('rowCount');
-      tbody.innerHTML = '';
-      rowCount.textContent = rows.length ? `${rows.length} record${rows.length !== 1 ? 's' : ''}` : '';
-      if (!rows || rows.length === 0) {
-        noData.classList.remove('hidden');
-        return;
-      }
-      noData.classList.add('hidden');
-      rows.forEach(r => {
-        const payout = Number(r.payout) || 0;
-        const status = payout > 0
-          ? '<span class="px-2 py-0.5 rounded text-xs font-medium bg-[#548888]/20 text-[#7ab8b8]">Billable</span>'
-          : '<span class="px-2 py-0.5 rounded text-xs font-medium bg-gray-700 text-gray-400">Non-billable</span>';
-        const tr = document.createElement('tr');
-        tr.className = 'hover:bg-[#2a322f] transition';
-        tr.innerHTML = `
-          <td class="px-5 py-3 text-gray-300 text-sm">${formatTimestamp(r.dts)}</td>
-          <td class="px-5 py-3 font-mono text-sm">${r.ani || '—'}</td>
-          <td class="px-5 py-3 text-gray-300">${r.state || '—'}</td>
-          <td class="px-5 py-3 text-gray-300">${r.call_duration_sec || '—'}s</td>
-          <td class="px-5 py-3 text-[#FBB13C] font-medium"><span class="payout-hidden">$${payout.toFixed(2)}</span></td>
-          <td class="px-5 py-3">${status}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-  function renderMonthly(rows) {
-    const tbody = document.getElementById('monthlyBody');
-    tbody.innerHTML = '';
-  
-    (rows || []).forEach(r => {
-      let month = (r.month || '').toString().trim();
-  
-      // Force clean YYYY-MM format
-      if (month.length > 7) {
-        // Try to extract year-month
-        const match = month.match(/(\d{4})-(\d{2})/);
-        if (match) {
-          month = match[0];
-        } else {
-          // Fallback: try parsing as date
-          const d = new Date(month);
-          if (!isNaN(d.getTime())) {
-            const pad = n => String(n).padStart(2, '0');
-            month = `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
-          }
-        }
-      }
-  
-      const tr = document.createElement('tr');
-      tr.className = 'hover:bg-[#2a322f] transition';
-      tr.innerHTML = `
-        <td class="px-5 py-3">${month || '—'}</td>
-        <td class="px-5 py-3 text-[#FBB13C] font-medium"><span class="payout-hidden">$${Number(r.total_payout || 0).toFixed(2)}</span></td>
-        <td class="px-5 py-3 text-gray-300">${r.total_calls || '—'}</td>
-      `;
-      tbody.appendChild(tr);
-    });
-  }
-    function getStateStats() {
-      const stats = {};
-      allCalls.forEach(c => {
-        const state = (c.state || 'Unknown').toString().trim().toUpperCase() || 'Unknown';
-        if (!stats[state]) stats[state] = { count: 0, totalPayout: 0 };
-        stats[state].count += 1;
-        stats[state].totalPayout += Number(c.payout) || 0;
-      });
-      return Object.keys(stats).map(state => ({
-        state,
-        calls: stats[state].count,
-        totalPayout: stats[state].totalPayout,
-        avgBid: stats[state].count ? stats[state].totalPayout / stats[state].count : 0
-      })).sort((a, b) => b.avgBid - a.avgBid);
-    }
-    function renderStateTable() {
-      const stats = getStateStats();
-      const tbody = document.getElementById('stateBody');
-      tbody.innerHTML = '';
-      if (stats.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" class="px-5 py-8 text-center text-gray-500">No data yet</td></tr>`;
-        return;
-      }
-      stats.forEach(s => {
-        const tr = document.createElement('tr');
-        tr.className = 'hover:bg-[#2a322f] transition';
-        tr.innerHTML = `
-          <td class="px-5 py-3 font-medium">${s.state}</td>
-          <td class="px-5 py-3 text-gray-300">${s.calls}</td>
-          <td class="px-5 py-3 text-[#FBB13C]"><span class="payout-hidden">$${s.totalPayout.toFixed(2)}</span></td>
-          <td class="px-5 py-3 text-[#FBB13C] font-medium"><span class="payout-hidden">$${s.avgBid.toFixed(2)}</span></td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-    function showPage(page) {
-      document.getElementById('pageOverview').classList.toggle('hidden', page !== 'overview');
-      document.getElementById('pageAnalytics').classList.toggle('hidden', page !== 'analytics');
-      document.getElementById('navOverview').classList.toggle('active', page === 'overview');
-      document.getElementById('navAnalytics').classList.toggle('active', page === 'analytics');
-      if (page === 'analytics') {
-        renderStateTable();
-        updateBillableMetrics();
-      }
-    }
-    async function refreshData() {
-      const btn = document.getElementById('refreshBtn');
-      btn.disabled = true;
-      btn.innerHTML = `<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/></svg> Refreshing...`;
-      try {
-        const res = await apiCall("refresh");
-        if (res.success) await loadAll();
-        else alert("Error: " + res.message);
-      } catch (err) {
-        alert("Failed: " + err.message);
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> Refresh`;
-      }
-    }
-    function exportCSV() {
-      const rows = getFilteredCalls();
-      if (!rows.length) { alert('No data to export'); return; }
-      const headers = ['dts','ani','state','call_duration_sec','payout','status'];
-      const csvRows = rows.map(r => {
-        const payout = Number(r.payout) || 0;
-        const status = payout > 0 ? 'Billable' : 'Non-billable';
-        return [r.dts || '', r.ani || '', r.state || '', r.call_duration_sec || '', payout.toFixed(2), status]
-          .map(val => String(val).includes(',') || String(val).includes('"') ? `"${String(val).replace(/"/g, '""')}"` : val)
-          .join(',');
-      });
-      const csv = [headers.join(',')].concat(csvRows).join('\n');
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `vtm-calls-${new Date().toISOString().slice(0,10)}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
-    }
-    // Start
-    checkLoginStatus();
-  </script>
+<body>
+<div id="a0" class="min-h-screen flex items-center justify-center p-4">
+<div class="card login-glow w-full max-w-md p-8 fade-in">
+<div class="text-center mb-8">
+<img src="https://vocaltechmarketing.com/images/logo.png" alt="VTM" class="mx-auto h-14 w-auto mb-5 opacity-95">
+<h1 class="text-2xl font-bold tracking-tight">VTM CRM</h1>
+<p class="text-sm mt-1.5" style="color:var(--muted)">Call Analytics Portal</p>
+</div>
+<input id="a1" type="password" placeholder="Enter password" class="input-dark w-full px-4 py-3.5 mb-4 text-sm" onkeypress="if(event.key==='Enter')_0x4f2a()">
+<button onclick="_0x4f2a()" id="a2" class="btn-primary w-full py-3.5 text-sm">Sign In</button>
+<p id="a3" class="text-sm mt-4 text-center hidden" style="color:var(--danger)">Incorrect password</p>
+</div>
+</div>
+<div id="a4" class="hidden">
+<header class="border-b sticky top-0 z-20" style="border-color:var(--border)">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-4">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-3">
+<img src="https://vocaltechmarketing.com/images/logo.png" alt="VTM" class="h-8 w-auto opacity-95">
+<div>
+<h1 class="font-semibold text-sm leading-tight tracking-wide">VTM CRM</h1>
+<p class="text-[11px]" style="color:var(--muted)">Call Analytics</p>
+</div>
+</div>
+<nav class="flex gap-7 text-sm font-medium">
+<button onclick="_0x8c1d('o')" id="a5" class="nav-link active">Overview</button>
+<button onclick="_0x8c1d('a')" id="a6" class="nav-link">Analytics</button>
+</nav>
+</div>
+<div class="flex items-center gap-2.5">
+<button onclick="_0x3e7b()" id="a7" class="btn-primary px-4 py-2 text-sm flex items-center gap-2">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+Refresh
+</button>
+<button onclick="_0x9a2f()" class="btn-ghost px-4 py-2 text-sm">Logout</button>
+</div>
+</div>
+</header>
+<main class="max-w-7xl mx-auto px-4 sm:px-6 py-7">
+<div id="a8" class="space-y-6 fade-in">
+<div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3.5">
+<div class="card metric-card p-4.5">
+<p class="text-[11px] font-medium uppercase tracking-wider" style="color:var(--muted)">Total Calls</p>
+<p id="a9" class="text-2xl font-bold mt-2 tracking-tight">—</p>
+</div>
+<div class="card metric-card p-4.5">
+<p class="text-[11px] font-medium uppercase tracking-wider" style="color:var(--muted)">Total Payout</p>
+<p id="aa" class="text-2xl font-bold mt-2 tracking-tight payout-hidden" style="color:var(--gold)">—</p>
+</div>
+<div class="card metric-card p-4.5">
+<p class="text-[11px] font-medium uppercase tracking-wider" style="color:var(--muted)">Avg Duration</p>
+<p id="ab" class="text-2xl font-bold mt-2 tracking-tight">— <span class="text-xs font-normal" style="color:var(--muted)">sec</span></p>
+</div>
+<div class="card metric-card p-4.5">
+<p class="text-[11px] font-medium uppercase tracking-wider" style="color:var(--muted)">Avg Payout</p>
+<p id="ac" class="text-2xl font-bold mt-2 tracking-tight payout-hidden" style="color:var(--gold)">—</p>
+</div>
+<div class="card metric-card p-4.5">
+<p class="text-[11px] font-medium uppercase tracking-wider" style="color:var(--muted)">Lowest Bid</p>
+<p id="ad" class="text-2xl font-bold mt-2 tracking-tight payout-hidden" style="color:var(--gold)">—</p>
+</div>
+<div class="card metric-card p-4.5">
+<p class="text-[11px] font-medium uppercase tracking-wider" style="color:var(--muted)">Highest Bid</p>
+<p id="ae" class="text-2xl font-bold mt-2 tracking-tight payout-hidden" style="color:var(--gold)">—</p>
+</div>
+</div>
+<div class="card p-4">
+<div class="flex flex-wrap items-end gap-3">
+<div class="flex-1 min-w-[150px]">
+<label class="block text-[11px] mb-1.5 font-medium" style="color:var(--muted)">Search</label>
+<input id="af" type="text" placeholder="ANI, state or date..." class="input-dark w-full px-3 py-2.5 text-sm" oninput="_0x1b9e()">
+</div>
+<div>
+<label class="block text-[11px] mb-1.5 font-medium" style="color:var(--muted)">From</label>
+<input id="ag" type="date" class="input-dark px-3 py-2.5 text-sm" onchange="_0x1b9e()">
+</div>
+<div>
+<label class="block text-[11px] mb-1.5 font-medium" style="color:var(--muted)">To</label>
+<input id="ah" type="date" class="input-dark px-3 py-2.5 text-sm" onchange="_0x1b9e()">
+</div>
+<div>
+<label class="block text-[11px] mb-1.5 font-medium" style="color:var(--muted)">Status</label>
+<select id="ai" class="input-dark px-3 py-2.5 text-sm" onchange="_0x1b9e()">
+<option value="all">All</option>
+<option value="billable">Billable</option>
+<option value="nonbillable">Non-billable</option>
+</select>
+</div>
+<button onclick="_0x7d4c()" class="btn-ghost px-3.5 py-2.5 text-sm">Clear</button>
+<button onclick="_0x2f8a()" class="btn-export px-4 py-2.5 text-sm ml-auto">Export CSV</button>
+</div>
+</div>
+<div class="card overflow-hidden">
+<div class="px-5 py-4 border-b flex items-center justify-between" style="border-color:var(--border)">
+<h2 class="font-semibold text-sm tracking-wide">Call Details</h2>
+<span id="aj" class="text-[11px]" style="color:var(--muted)"></span>
+</div>
+<div class="table-wrap">
+<table class="w-full text-sm">
+<thead>
+<tr class="text-left text-[11px] uppercase tracking-wider" style="color:var(--muted)">
+<th class="px-5 py-3 font-medium">Timestamp</th>
+<th class="px-5 py-3 font-medium">ANI</th>
+<th class="px-5 py-3 font-medium">State</th>
+<th class="px-5 py-3 font-medium">Duration</th>
+<th class="px-5 py-3 font-medium">Payout</th>
+<th class="px-5 py-3 font-medium">Status</th>
+</tr>
+</thead>
+<tbody id="ak" class="divide-y" style="border-color:var(--border)"></tbody>
+</table>
+</div>
+<div id="al" class="hidden py-16 text-center">
+<p class="text-sm" style="color:var(--muted)">No calls match the current filters</p>
+</div>
+</div>
+</div>
+<div id="am" class="hidden space-y-6 fade-in">
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+<div class="card metric-card p-5">
+<p class="text-[11px] font-medium uppercase tracking-wider" style="color:var(--muted)">Total Calls</p>
+<p id="an" class="text-2xl font-bold mt-2 tracking-tight">—</p>
+</div>
+<div class="card metric-card p-5">
+<p class="text-[11px] font-medium uppercase tracking-wider" style="color:var(--muted)">Billable Calls</p>
+<p id="ao" class="text-2xl font-bold mt-2 tracking-tight" style="color:var(--accent)">—</p>
+</div>
+<div class="card metric-card p-5">
+<p class="text-[11px] font-medium uppercase tracking-wider" style="color:var(--muted)">Non-Billable Calls</p>
+<p id="ap" class="text-2xl font-bold mt-2 tracking-tight" style="color:var(--muted)">—</p>
+</div>
+</div>
+<div class="card overflow-hidden">
+<div class="px-5 py-4 border-b" style="border-color:var(--border)">
+<h2 class="font-semibold text-sm tracking-wide">State Summary</h2>
+<p class="text-[11px] mt-1" style="color:var(--muted)">Calls, total payout and average bid per state</p>
+</div>
+<div class="table-wrap">
+<table class="w-full text-sm">
+<thead>
+<tr class="text-left text-[11px] uppercase tracking-wider" style="color:var(--muted)">
+<th class="px-5 py-3 font-medium">State</th>
+<th class="px-5 py-3 font-medium">Calls</th>
+<th class="px-5 py-3 font-medium">Total Payout</th>
+<th class="px-5 py-3 font-medium">Average Bid</th>
+</tr>
+</thead>
+<tbody id="aq" class="divide-y" style="border-color:var(--border)"></tbody>
+</table>
+</div>
+</div>
+<div class="card overflow-hidden">
+<div class="px-5 py-4 border-b" style="border-color:var(--border)">
+<h2 class="font-semibold text-sm tracking-wide">Monthly Summary</h2>
+</div>
+<div class="table-wrap">
+<table class="w-full text-sm">
+<thead>
+<tr class="text-left text-[11px] uppercase tracking-wider" style="color:var(--muted)">
+<th class="px-5 py-3 font-medium">Month</th>
+<th class="px-5 py-3 font-medium">Total Payout</th>
+<th class="px-5 py-3 font-medium">Total Calls</th>
+</tr>
+</thead>
+<tbody id="ar" class="divide-y" style="border-color:var(--border)"></tbody>
+</table>
+</div>
+</div>
+</div>
+</main>
+</div>
+<script>
+const _0x2a1b=["\x68\x74\x74\x70\x73\x3a\x2f\x2f\x73\x63\x72\x69\x70\x74\x2e\x67\x6f\x6f\x67\x6c\x65\x2e\x63\x6f\x6d\x2f\x6d\x61\x63\x72\x6f\x73\x2f\x73\x2f\x41\x4b\x66\x79\x63\x62\x77\x37\x43\x42\x4a\x6b\x73\x58\x52\x51\x46\x7a\x77\x54\x76\x77\x43\x57\x55\x4b\x66\x70\x2d\x53\x5f\x31\x42\x55\x55\x4e\x66\x6f\x34\x63\x34\x79\x2d\x32\x32\x65\x6d\x65\x58\x38\x31\x6a\x52\x61\x30\x50\x52\x48\x6b\x69\x69\x4a\x38\x6c\x46\x77\x52\x51\x70\x4d\x41\x71\x56\x41\x2f\x65\x78\x65\x63","\x76\x74\x6d\x5f\x6c\x6f\x67\x67\x65\x64\x5f\x69\x6e","\x74\x72\x75\x65","\x61\x30","\x68\x69\x64\x64\x65\x6e","\x61\x34","\x67\x65\x74\x43\x61\x6c\x6c\x73","\x67\x65\x74\x4d\x6f\x6e\x74\x68\x6c\x79","\x6c\x6f\x67\x69\x6e","\x70\x61\x73\x73\x77\x6f\x72\x64","\x72\x65\x66\x72\x65\x73\x68","\x61\x63\x74\x69\x6f\x6e","\x73\x75\x63\x63\x65\x73\x73","\x64\x61\x74\x61","\x6d\x65\x73\x73\x61\x67\x65","\x4e\x65\x74\x77\x6f\x72\x6b\x20\x65\x72\x72\x6f\x72","\x61\x31","\x61\x32","\x53\x69\x67\x6e\x69\x6e\x67\x20\x69\x6e\x2e\x2e\x2e","\x53\x69\x67\x6e\x20\x49\x6e","\x61\x33","\x4c\x6f\x67\x69\x6e\x20\x66\x61\x69\x6c\x65\x64\x3a\x20","\x61\x35","\x61\x36","\x61\x38","\x61\x6d","\x61\x63\x74\x69\x76\x65","\x6f","\x61","\x61\x39","\x61\x61","\x61\x62","\x61\x63","\x61\x64","\x61\x65","\x30","\x24\x30\x2e\x30\x30","\x20\x3c\x73\x70\x61\x6e\x20\x63\x6c\x61\x73\x73\x3d\x22\x74\x65\x78\x74\x2d\x78\x73\x20\x66\x6f\x6e\x74\x2d\x6e\x6f\x72\x6d\x61\x6c\x22\x20\x73\x74\x79\x6c\x65\x3d\x22\x63\x6f\x6c\x6f\x72\x3a\x76\x61\x72\x28\x2d\x2d\x6d\x75\x74\x65\x64\x29\x22\x3e\x73\x65\x63\x3c\x2f\x73\x70\x61\x6e\x3e","\x61\x66","\x61\x67","\x61\x68","\x61\x69","\x61\x6c\x6c","\x62\x69\x6c\x6c\x61\x62\x6c\x65","\x6e\x6f\x6e\x62\x69\x6c\x6c\x61\x62\x6c\x65","\x61\x6b","\x61\x6c","\x61\x6a","\x72\x65\x63\x6f\x72\x64","\x73","\x42\x69\x6c\x6c\x61\x62\x6c\x65","\x4e\x6f\x6e\x2d\x62\x69\x6c\x6c\x61\x62\x6c\x65","\x61\x72","\x61\x71","\x61\x6e","\x61\x6f","\x61\x70","\x55\x6e\x6b\x6e\x6f\x77\x6e","\x4e\x6f\x20\x64\x61\x74\x61\x20\x79\x65\x74","\x4e\x6f\x20\x64\x61\x74\x61\x20\x74\x6f\x20\x65\x78\x70\x6f\x72\x74","\x64\x74\x73","\x61\x6e\x69","\x73\x74\x61\x74\x65","\x63\x61\x6c\x6c\x5f\x64\x75\x72\x61\x74\x69\x6f\x6e\x5f\x73\x65\x63","\x70\x61\x79\x6f\x75\x74","\x73\x74\x61\x74\x75\x73","\x76\x74\x6d\x2d\x63\x61\x6c\x6c\x73\x2d","\x2e\x63\x73\x76","\x74\x65\x78\x74\x2f\x63\x73\x76\x3b\x63\x68\x61\x72\x73\x65\x74\x3d\x75\x74\x66\x2d\x38\x3b","\x45\x72\x72\x6f\x72\x3a\x20","\x46\x61\x69\x6c\x65\x64\x3a\x20","\x52\x65\x66\x72\x65\x73\x68\x69\x6e\x67\x2e\x2e\x2e","\x52\x65\x66\x72\x65\x73\x68"];
+let _0x5c3d=[],_0x9e2f=[],_0x7b1a=null;
+const _0x4e8c=_0x2a1b[0];
+function _0x6d3f(){if(localStorage.getItem(_0x2a1b[1])===_0x2a1b[2]){document.getElementById(_0x2a1b[3]).classList.add(_0x2a1b[4]);document.getElementById(_0x2a1b[5]).classList.remove(_0x2a1b[4]);_0x0c4e();_0x7b1a=setInterval(_0x0c4e,6e4)}}
+function _0x1a7c(v){if(v==null||v==="")return"—";const s=String(v).trim();if(!s)return"—";if(/^\d{4}-\d{2}-\d{2}/.test(s))return s;const d=new Date(s);if(isNaN(d.getTime()))return s;const p=n=>String(n).padStart(2,"0");return`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`}
+async function _0x3b9a(a,p={}){const u=new URL(_0x4e8c);u.searchParams.set(_0x2a1b[11],a);Object.keys(p).forEach(k=>u.searchParams.set(k,p[k]));const r=await fetch(u.toString());if(!r.ok)throw new Error(_0x2a1b[15]);return await r.json()}
+async function _0x4f2a(){const pwd=document.getElementById(_0x2a1b[16]).value;const btn=document.getElementById(_0x2a1b[17]);btn.disabled=true;btn.textContent=_0x2a1b[18];try{const res=await _0x3b9a(_0x2a1b[8],{[_0x2a1b[9]]:pwd});if(res[_0x2a1b[12]]){localStorage.setItem(_0x2a1b[1],_0x2a1b[2]);document.getElementById(_0x2a1b[3]).classList.add(_0x2a1b[4]);document.getElementById(_0x2a1b[5]).classList.remove(_0x2a1b[4]);_0x0c4e();_0x7b1a=setInterval(_0x0c4e,6e4)}else{document.getElementById(_0x2a1b[20]).classList.remove(_0x2a1b[4])}}catch(e){alert(_0x2a1b[21]+e.message)}finally{btn.disabled=false;btn.textContent=_0x2a1b[19]}}
+function _0x9a2f(){if(_0x7b1a)clearInterval(_0x7b1a);localStorage.removeItem(_0x2a1b[1]);document.getElementById(_0x2a1b[5]).classList.add(_0x2a1b[4]);document.getElementById(_0x2a1b[3]).classList.remove(_0x2a1b[4]);document.getElementById(_0x2a1b[16]).value="";document.getElementById(_0x2a1b[20]).classList.add(_0x2a1b[4])}
+async function _0x0c4e(){try{const[c,m]=await Promise.all([_0x3b9a(_0x2a1b[6]),_0x3b9a(_0x2a1b[7])]);_0x5c3d=c[_0x2a1b[13]]||[];_0x9e2f=m[_0x2a1b[13]]||[];_0x1b9e();_0x5f2d(_0x9e2f);if(!document.getElementById(_0x2a1b[25]).classList.contains(_0x2a1b[4])){_0x8e1a();_0x4c7b()}}catch(e){console.error(e)}}
+function _0x0e5f(){const q=(document.getElementById(_0x2a1b[38]).value||"").toLowerCase().trim();const fr=document.getElementById(_0x2a1b[39]).value;const to=document.getElementById(_0x2a1b[40]).value;const st=document.getElementById(_0x2a1b[41]).value;return _0x5c3d.filter(r=>{if(q){const h=`${r.ani||""} ${r.state||""} ${r.dts||""}`.toLowerCase();if(!h.includes(q))return false}if(fr||to){let rd="";if(r.dts){const m=String(r.dts).match(/(\d{4})-(\d{2})-(\d{2})/);if(m)rd=m[0];else{const d=new Date(r.dts);if(!isNaN(d.getTime())){const p=n=>String(n).padStart(2,"0");rd=`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`}}}if(fr&&rd<fr)return false;if(to&&rd>to)return false}const po=Number(r.payout)||0;if(st===_0x2a1b[43]&&po<=0)return false;if(st===_0x2a1b[44]&&po>0)return false;return true})}
+function _0x1b9e(){const f=_0x0e5f();_0x6a2c(f);_0x9d4e(f)}
+function _0x7d4c(){document.getElementById(_0x2a1b[38]).value="";document.getElementById(_0x2a1b[39]).value="";document.getElementById(_0x2a1b[40]).value="";document.getElementById(_0x2a1b[41]).value=_0x2a1b[42];_0x1b9e()}
+function _0x9d4e(rows){if(!rows||!rows.length){document.getElementById(_0x2a1b[29]).textContent=_0x2a1b[35];document.getElementById(_0x2a1b[30]).textContent=_0x2a1b[36];document.getElementById(_0x2a1b[31]).innerHTML=_0x2a1b[35]+_0x2a1b[37];document.getElementById(_0x2a1b[32]).textContent=_0x2a1b[36];document.getElementById(_0x2a1b[33]).textContent=_0x2a1b[36];document.getElementById(_0x2a1b[34]).textContent=_0x2a1b[36];return}let tp=0,td=0,lo=Infinity,hi=-Infinity;rows.forEach(c=>{const p=Number(c.payout)||0;tp+=p;td+=Number(c.call_duration_sec)||0;if(p>0){if(p<lo)lo=p;if(p>hi)hi=p}});document.getElementById(_0x2a1b[29]).textContent=rows.length;document.getElementById(_0x2a1b[30]).textContent="$"+tp.toFixed(2);document.getElementById(_0x2a1b[31]).innerHTML=Math.round(td/rows.length)+_0x2a1b[37];document.getElementById(_0x2a1b[32]).textContent="$"+(tp/rows.length).toFixed(2);document.getElementById(_0x2a1b[33]).textContent=lo===Infinity?_0x2a1b[36]:"$"+lo.toFixed(2);document.getElementById(_0x2a1b[34]).textContent=hi===-Infinity?_0x2a1b[36]:"$"+hi.toFixed(2)}
+function _0x4c7b(){let b=0,n=0;_0x5c3d.forEach(c=>{if(Number(c.payout)>0)b++;else n++});document.getElementById(_0x2a1b[54]).textContent=_0x5c3d.length;document.getElementById(_0x2a1b[55]).textContent=b;document.getElementById(_0x2a1b[56]).textContent=n}
+function _0x6a2c(rows){const tb=document.getElementById(_0x2a1b[45]);const nd=document.getElementById(_0x2a1b[46]);const rc=document.getElementById(_0x2a1b[47]);tb.innerHTML="";rc.textContent=rows.length?`${rows.length} ${_0x2a1b[48]}${rows.length!==1?_0x2a1b[49]:""}`:"";if(!rows||!rows.length){nd.classList.remove(_0x2a1b[4]);return}nd.classList.add(_0x2a1b[4]);rows.forEach(r=>{const p=Number(r.payout)||0;const st=p>0?`<span class="status-billable">${_0x2a1b[50]}</span>`:`<span class="status-non">${_0x2a1b[51]}</span>`;const tr=document.createElement("tr");tr.innerHTML=`<td class="px-5 py-3 text-sm" style="color:var(--muted)">${_0x1a7c(r.dts)}</td><td class="px-5 py-3 font-mono text-sm">${r.ani||"—"}</td><td class="px-5 py-3" style="color:var(--muted)">${r.state||"—"}</td><td class="px-5 py-3" style="color:var(--muted)">${r.call_duration_sec||"—"}s</td><td class="px-5 py-3 font-medium"><span class="payout-hidden" style="color:var(--gold)">$${p.toFixed(2)}</span></td><td class="px-5 py-3">${st}</td>`;tb.appendChild(tr)})}
+function _0x5f2d(rows){const tb=document.getElementById(_0x2a1b[52]);tb.innerHTML="";(rows||[]).forEach(r=>{let m=(r.month||"").toString().trim();if(m.length>7){const mt=m.match(/(\d{4})-(\d{2})/);if(mt)m=mt[0];else{const d=new Date(m);if(!isNaN(d.getTime())){const p=n=>String(n).padStart(2,"0");m=`${d.getFullYear()}-${p(d.getMonth()+1)}`}}}const tr=document.createElement("tr");tr.innerHTML=`<td class="px-5 py-3">${m||"—"}</td><td class="px-5 py-3 font-medium"><span class="payout-hidden" style="color:var(--gold)">$${Number(r.total_payout||0).toFixed(2)}</span></td><td class="px-5 py-3" style="color:var(--muted)">${r.total_calls||"—"}</td>`;tb.appendChild(tr)})}
+function _0x2d8e(){const s={};_0x5c3d.forEach(c=>{const st=((c.state||_0x2a1b[57]).toString().trim().toUpperCase())||_0x2a1b[57];if(!s[st])s[st]={c:0,t:0};s[st].c++;s[st].t+=Number(c.payout)||0});return Object.keys(s).map(k=>({state:k,calls:s[k].c,totalPayout:s[k].t,avgBid:s[k].c?s[k].t/s[k].c:0})).sort((a,b)=>b.avgBid-a.avgBid)}
+function _0x8e1a(){const st=_0x2d8e();const tb=document.getElementById(_0x2a1b[53]);tb.innerHTML="";if(!st.length){tb.innerHTML=`<tr><td colspan="4" class="px-5 py-8 text-center" style="color:var(--muted)">${_0x2a1b[58]}</td></tr>`;return}st.forEach(s=>{const tr=document.createElement("tr");tr.innerHTML=`<td class="px-5 py-3 font-medium">${s.state}</td><td class="px-5 py-3" style="color:var(--muted)">${s.calls}</td><td class="px-5 py-3"><span class="payout-hidden" style="color:var(--gold)">$${s.totalPayout.toFixed(2)}</span></td><td class="px-5 py-3 font-medium"><span class="payout-hidden" style="color:var(--gold)">$${s.avgBid.toFixed(2)}</span></td>`;tb.appendChild(tr)})}
+function _0x8c1d(p){document.getElementById(_0x2a1b[24]).classList.toggle(_0x2a1b[4],p!==_0x2a1b[27]);document.getElementById(_0x2a1b[25]).classList.toggle(_0x2a1b[4],p!==_0x2a1b[28]);document.getElementById(_0x2a1b[22]).classList.toggle(_0x2a1b[26],p===_0x2a1b[27]);document.getElementById(_0x2a1b[23]).classList.toggle(_0x2a1b[26],p===_0x2a1b[28]);if(p===_0x2a1b[28]){_0x8e1a();_0x4c7b()}}
+async function _0x3e7b(){const btn=document.getElementById("a7");btn.disabled=true;btn.innerHTML=`<svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/></svg> ${_0x2a1b[71]}`;try{const res=await _0x3b9a(_0x2a1b[10]);if(res[_0x2a1b[12]])await _0x0c4e();else alert(_0x2a1b[69]+res[_0x2a1b[14]])}catch(e){alert(_0x2a1b[70]+e.message)}finally{btn.disabled=false;btn.innerHTML=`<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> ${_0x2a1b[72]}`}}
+function _0x2f8a(){const rows=_0x0e5f();if(!rows.length){alert(_0x2a1b[59]);return}const headers=[_0x2a1b[60],_0x2a1b[61],_0x2a1b[62],_0x2a1b[63],_0x2a1b[64],_0x2a1b[65]];const csvRows=rows.map(r=>{const p=Number(r.payout)||0;const st=p>0?_0x2a1b[50]:_0x2a1b[51];const exact=_0x1a7c(r.dts);const dts=exact==="—"?"":"\t"+exact;return[dts,r.ani||"",r.state||"",r.call_duration_sec||"",p.toFixed(2),st].map(v=>{const s=String(v);return s.includes(",")||s.includes('"')||s.includes("\n")?`"${s.replace(/"/g,'""')}"`:s}).join(",")});const csv=[headers.join(",")].concat(csvRows).join("\n");const blob=new Blob(["\uFEFF"+csv],{type:_0x2a1b[68]});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=_0x2a1b[66]+new Date().toISOString().slice(0,10)+_0x2a1b[67];a.click();URL.revokeObjectURL(url)}
+_0x6d3f();
+</script>
 </body>
 </html>
