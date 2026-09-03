@@ -121,12 +121,14 @@
     const PKT_OFFSET_MS = 5 * 60 * 60 * 1000; // Pakistan Standard Time = UTC+5
     const utcMs = Date.UTC(y, mo, da, h, mi, se) - PKT_OFFSET_MS;
     const utcDate = new Date(utcMs);
-    const formatted = utcDate.toLocaleString("en-US", {
+    const parts = new Intl.DateTimeFormat("en-US", {
       timeZone: "America/New_York",
-      month: "short", day: "numeric", year: "numeric",
-      hour: "2-digit", minute: "2-digit"
-    });
-    return formatted + " ET";
+      year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit", second: "2-digit",
+      hour12: false
+    }).formatToParts(utcDate).reduce(function (acc, p) { acc[p.type] = p.value; return acc; }, {});
+    const hh = parts.hour === "24" ? "00" : parts.hour;
+    return parts.month + "/" + parts.day + "/" + parts.year + " " + hh + ":" + parts.minute + ":" + parts.second;
   }
 
   function formatDuration(seconds) {
@@ -484,7 +486,7 @@
       return;
     }
     const headers = [
-      "Timestamp (ET)", "Phone", "State", "Duration (sec)", "Status", "Payout"
+      "Timestamp", "Phone", "State", "Duration (sec)", "Status", "Payout"
     ];
     const lines = [headers.join(",")];
     filteredData.forEach(function (r) {
@@ -644,7 +646,7 @@
       '<div class="table-card">' +
       '<div class="table-header"><h2>Sales Records — ' + escapeHtml(companyName) + '</h2><span class="table-count" id="tableCount">0 records</span></div>' +
       '<div class="table-wrap"><table><thead><tr>' +
-      "<th>Timestamp (ET)</th><th>Phone</th><th>State</th>" +
+      "<th>Timestamp</th><th>Phone</th><th>State</th>" +
       "<th>Duration</th><th>Status</th><th>Payout ($)</th>" +
       '</tr></thead><tbody id="tableBody"></tbody></table>' +
       '<div id="emptyState" class="empty-state hidden"><i class="ti ti-database-off"></i><div>No records match your filters.</div></div>' +
