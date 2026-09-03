@@ -644,7 +644,7 @@
       '<button class="btn" id="btnClearFilters"><i class="ti ti-x"></i> Clear</button>' +
       "</div>" +
       '<div class="table-card">' +
-      '<div class="table-header"><h2>Sales Records — ' + escapeHtml(companyName) + '</h2><span class="table-count" id="tableCount">0 records</span></div>' +
+      '<div class="table-header"><h2>Calls Record — ' + escapeHtml(companyName) + '</h2><span class="table-count" id="tableCount">0 records</span></div>' +
       '<div class="table-wrap"><table><thead><tr>' +
       "<th>Timestamp</th><th>Phone</th><th>State</th>" +
       "<th>Duration</th><th>Status</th><th>Payout ($)</th>" +
