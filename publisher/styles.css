@@ -384,7 +384,7 @@ tr:hover td {
   color: #f87171;
 }
 
-.badge-unknown {
+.badge-pending {
   background: rgba(156, 163, 175, 0.15);
   color: #9ca3af;
 }
