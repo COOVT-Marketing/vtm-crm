@@ -123,9 +123,9 @@
   }
 
   function getBillableStatus(durationSeconds) {
-    if (durationSeconds == null || durationSeconds === 0 || durationSeconds === "") return "unknown";
+    if (durationSeconds == null || durationSeconds === 0 || durationSeconds === "") return "pending";
     const sec = Number(durationSeconds);
-    if (isNaN(sec) || sec <= 0) return "unknown";
+    if (isNaN(sec) || sec <= 0) return "pending";
     return sec >= BILLABLE_THRESHOLD_SECONDS ? "billable" : "nonbillable";
   }
 
@@ -428,7 +428,7 @@
   function billableBadge(status) {
     if (status === "billable") return '<span class="badge badge-billable">Billable</span>';
     if (status === "nonbillable") return '<span class="badge badge-nonbillable">Non-Billable</span>';
-    return '<span class="badge badge-unknown">Unknown</span>';
+    return '<span class="badge badge-pending">Pending</span>';
   }
 
   function renderTable() {
@@ -482,7 +482,7 @@
     filteredData.forEach(function (r) {
       const statusLabel =
         r.billable === "billable" ? "Billable" :
-        r.billable === "nonbillable" ? "Non-Billable" : "Unknown";
+        r.billable === "nonbillable" ? "Non-Billable" : "Pending";
       const row = [
         r.timestamp, r.agent, r.firstName, r.lastName, r.phone, r.age, r.state,
         r.company, r.duration || "", statusLabel,
@@ -629,7 +629,7 @@
       '<option value="">All Status</option>' +
       '<option value="billable">Billable</option>' +
       '<option value="nonbillable">Non-Billable</option>' +
-      '<option value="unknown">Unknown</option>' +
+      '<option value="pending">Pending</option>' +
       "</select></div>" +
       '<div><span class="filter-label">From</span><input type="date" class="filter-date" id="filterFrom" /></div>' +
       '<div><span class="filter-label">To</span><input type="date" class="filter-date" id="filterTo" /></div>' +
@@ -701,7 +701,7 @@
           '<small style="color:var(--text-dim)">' + escapeHtml(err.message) + "</small></div>";
       }
       updateMetrics([]);
-      showToast("Failed to load data – check sheet permissions", 4000);
+      showToast("Failed to load data", 4000);
     } finally {
       if (loading) loading.classList.add("hidden");
     }
