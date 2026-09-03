@@ -626,8 +626,8 @@
       "</div></div></header>" +
       '<main class="container">' +
       '<div class="metrics">' +
-      '<div class="metric-card"><div class="metric-label"><i class="ti ti-chart-bar"></i> Total Sales</div><div class="metric-value" id="mTotalSales">—</div><div class="metric-sub">Billable · Rejected</div></div>' +
-      '<div class="metric-card"><div class="metric-label"><i class="ti ti-currency-dollar"></i> Total Payout</div><div class="metric-value" id="mTotalPayout">—</div><div class="metric-sub">Billable sales only</div></div>' +
+      '<div class="metric-card"><div class="metric-label"><i class="ti ti-chart-bar"></i> Total Calls</div><div class="metric-value" id="mTotalSales">—</div><div class="metric-sub">Billable · Rejected</div></div>' +
+      '<div class="metric-card"><div class="metric-label"><i class="ti ti-currency-dollar"></i> Total Payout</div><div class="metric-value" id="mTotalPayout">—</div><div class="metric-sub">Billable calls only</div></div>' +
       '<div class="metric-card"><div class="metric-label"><i class="ti ti-calculator"></i> Avg Payout</div><div class="metric-value" id="mAvgPayout">—</div><div class="metric-sub">Per billable sale</div></div>' +
       '<div class="metric-card"><div class="metric-label"><i class="ti ti-clock"></i> Avg Duration</div><div class="metric-value" id="mAvgDuration">—</div><div class="metric-sub">All calls</div></div>' +
       "</div>" +
