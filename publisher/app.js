@@ -440,13 +440,11 @@
 
   function applyFilters() {
     const q = ($("#searchInput") && $("#searchInput").value || "").toLowerCase().trim();
-    const agent = ($("#filterAgent") && $("#filterAgent").value) || "";
     const from = ($("#filterFrom") && $("#filterFrom").value) || "";
     const to = ($("#filterTo") && $("#filterTo").value) || "";
     const billableFilter = ($("#filterBillable") && $("#filterBillable").value) || "";
 
     filteredData = rawData.filter(function (r) {
-      if (agent && r.agent !== agent) return false;
       if (billableFilter && r.status !== billableFilter) return false;
       if (from || to) {
         const dayKey = getEasternDateKey(r.timestamp);
@@ -463,29 +461,6 @@
 
     renderTable();
     updateMetrics(filteredData);
-  }
-
-  function populateAgentFilter(data) {
-    const agents = [];
-    const seen = {};
-    data.forEach(function (r) {
-      if (r.agent && !seen[r.agent]) {
-        seen[r.agent] = true;
-        agents.push(r.agent);
-      }
-    });
-    agents.sort();
-    const sel = $("#filterAgent");
-    if (!sel) return;
-    const current = sel.value;
-    sel.innerHTML = '<option value="">All Agents</option>';
-    agents.forEach(function (a) {
-      const opt = document.createElement("option");
-      opt.value = a;
-      opt.textContent = a;
-      sel.appendChild(opt);
-    });
-    if (current) sel.value = current;
   }
 
   function billableBadge(status) {
@@ -685,7 +660,6 @@
       "</div>" +
       '<div class="filters">' +
       '<div class="search-wrap"><i class="ti ti-search"></i><input type="text" class="search-input" id="searchInput" placeholder="Search name, phone, agent…" /></div>' +
-      '<div><span class="filter-label">Agent</span><select class="filter-select" id="filterAgent"><option value="">All Agents</option></select></div>' +
       '<div><span class="filter-label">Status</span><select class="filter-select" id="filterBillable">' +
       '<option value="">All Status</option>' +
       '<option value="billable">Billable</option>' +
@@ -715,13 +689,11 @@
       buildLoginUI();
     });
     $("#searchInput") && $("#searchInput").addEventListener("input", debounce(applyFilters, 220));
-    $("#filterAgent") && $("#filterAgent").addEventListener("change", applyFilters);
     $("#filterBillable") && $("#filterBillable").addEventListener("change", applyFilters);
     $("#filterFrom") && $("#filterFrom").addEventListener("change", applyFilters);
     $("#filterTo") && $("#filterTo").addEventListener("change", applyFilters);
     $("#btnClearFilters") && $("#btnClearFilters").addEventListener("click", function () {
       if ($("#searchInput")) $("#searchInput").value = "";
-      if ($("#filterAgent")) $("#filterAgent").value = "";
       if ($("#filterBillable")) $("#filterBillable").value = "";
       if ($("#filterFrom")) $("#filterFrom").value = "";
       if ($("#filterTo")) $("#filterTo").value = "";
@@ -741,7 +713,6 @@
     try {
       const data = await fetchSheetData();
       rawData = applyCompanyFilter(data);
-      populateAgentFilter(rawData);
       applyFilters();
       const lu = $("#lastUpdated");
       if (lu) lu.textContent = "Last updated: " + new Date().toLocaleString();
