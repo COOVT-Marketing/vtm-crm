@@ -24,7 +24,8 @@
     company: ["company", "client", "publisher"],
     payout: ["payout", "bid", "bid/payout", "amount", "pay"],
     duration: ["duration", "call duration", "talk time", "minutes", "seconds", "call time"],
-    statusOverride: ["status override", "qa status", "status", "billable status", "override status"]
+    statusOverride: ["status override", "qa status", "status", "billable status", "override status"],
+    adminLocked: ["admin locked", "locked", "qa locked", "edit locked"]
   };
 
   let rawData = [];
@@ -88,28 +89,56 @@
   }
 
   /** Parse sheet timestamp as PKT and display in US Eastern */
+
+  /** Parse sheet timestamp as Pakistan Standard Time (UTC+5) → Date (UTC) */
+  function parseSheetTimestamp(str) {
+    if (!str) return null;
+    const s = String(str).trim();
+    if (!s) return null;
+    const hasTZ = /[zZ]|[+\-]\d{2}:?\d{2}$/.test(s);
+    if (hasTZ) {
+      const d = new Date(s);
+      return isNaN(d.getTime()) ? null : d;
+    }
+    // YYYY-MM-DD HH:MM:SS or YYYY/MM/DD
+    let parts = s.match(/(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})(?:[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+    if (parts) {
+      const y = +parts[1], mo = +parts[2] - 1, day = +parts[3];
+      const h = +(parts[4] || 0), mi = +(parts[5] || 0), sec = +(parts[6] || 0);
+      return new Date(Date.UTC(y, mo, day, h - 5, mi, sec)); // PKT → UTC
+    }
+    // DD/MM/YYYY HH:MM:SS
+    parts = s.match(/(\d{1,2})[\/](\d{1,2})[\/](\d{4})(?:[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+    if (parts) {
+      const day = +parts[1], mo = +parts[2] - 1, y = +parts[3];
+      const h = +(parts[4] || 0), mi = +(parts[5] || 0), sec = +(parts[6] || 0);
+      return new Date(Date.UTC(y, mo, day, h - 5, mi, sec));
+    }
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  /** Calendar date YYYY-MM-DD in US Eastern (for date filters) */
+  function getEasternDateKey(str) {
+    const d = parseSheetTimestamp(str);
+    if (!d) return "";
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/New_York",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit"
+    }).formatToParts(d);
+    const get = function (type) {
+      const x = parts.find(function (p) { return p.type === type; });
+      return x ? x.value : "00";
+    };
+    return get("year") + "-" + get("month") + "-" + get("day");
+  }
+
   function formatDateEastern(str) {
     if (!str) return "—";
-    let d = new Date(str);
-    if (isNaN(d.getTime())) return str;
-    const hasTZ = /[zZ]|[+\-]\d{2}:?\d{2}$/.test(String(str).trim());
-    if (!hasTZ) {
-      const parts = String(str).match(/(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?/);
-      if (parts) {
-        const y = +parts[1], mo = +parts[2] - 1, day = +parts[3];
-        const h = +parts[4], mi = +parts[5], s = +(parts[6] || 0);
-        d = new Date(Date.UTC(y, mo, day, h - 5, mi, s)); // PKT = UTC+5
-      } else {
-        // try DD/MM/YYYY HH:MM:SS
-        const parts2 = String(str).match(/(\d{1,2})[\/](\d{1,2})[\/](\d{4})[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?/);
-        if (parts2) {
-          const day = +parts2[1], mo = +parts2[2] - 1, y = +parts2[3];
-          const h = +parts2[4], mi = +parts2[5], s = +(parts2[6] || 0);
-          d = new Date(Date.UTC(y, mo, day, h - 5, mi, s));
-        }
-      }
-    }
-    // Display as YYYY-MM-DD HH:MM:SS in US Eastern
+    const d = parseSheetTimestamp(str);
+    if (!d) return str;
     const parts = new Intl.DateTimeFormat("en-CA", {
       timeZone: "America/New_York",
       year: "numeric",
@@ -249,7 +278,8 @@
           timestamp: row.timestamp,
           phone: row.phone,
           status: newStatus,
-          adminUser: currentUser ? currentUser.username : ""
+          adminUser: currentUser ? currentUser.username : "",
+          lockAfter: true
         })
       });
       return true;
@@ -270,7 +300,30 @@
           sheetName: "Auto",
           timestamp: row.timestamp,
           phone: row.phone,
-          payout: payoutValue
+          payout: payoutValue,
+          lockAfter: true
+        })
+      });
+      return true;
+    } catch (e) {
+      console.error(e);
+      return false;
+    }
+  }
+
+  async function saveDuration(row, durationValue) {
+    try {
+      await fetch(APPS_SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({
+          submissionType: "UPDATE_DURATION",
+          sheetName: "Auto",
+          timestamp: row.timestamp,
+          phone: row.phone,
+          duration: durationValue,
+          lockAfter: true
         })
       });
       return true;
@@ -296,6 +349,8 @@
       payout: parseNumber(r[col.payout]),
       duration: duration,
       statusOverride: override,
+      adminLocked: col.adminLocked != null ? (r[col.adminLocked] || "") : "",
+      locked: false,
       status: resolveStatus(duration, override)
     };
   }
@@ -348,6 +403,8 @@
           payout: parseNumber(get("payout")),
           duration: duration,
           statusOverride: override,
+          adminLocked: get("adminLocked"),
+          locked: false,
           status: resolveStatus(duration, override)
         };
       }).filter(function (r) {
@@ -357,6 +414,13 @@
   }
 
   /** Payout is $0 when non-billable or rejected */
+  function isRowLocked(row) {
+    if (!row) return false;
+    if (row.locked === true) return true;
+    const v = String(row.adminLocked || "").trim().toLowerCase();
+    return v === "yes" || v === "y" || v === "true" || v === "1" || v === "locked";
+  }
+
   function getDisplayPayout(row) {
     if (row.status === "nonbillable" || row.status === "rejected") return 0;
     return row.payout;
@@ -410,15 +474,11 @@
       if (agent && r.agent !== agent) return false;
       if (company && r.company !== company) return false;
       if (status && r.status !== status) return false;
-      if (from) {
-        const d = new Date(r.timestamp);
-        if (!isNaN(d) && d < new Date(from)) return false;
-      }
-      if (to) {
-        const d = new Date(r.timestamp);
-        const end = new Date(to);
-        end.setHours(23, 59, 59);
-        if (!isNaN(d) && d > end) return false;
+      if (from || to) {
+        const dayKey = getEasternDateKey(r.timestamp);
+        if (!dayKey) return false;
+        if (from && dayKey < from) return false;
+        if (to && dayKey > to) return false;
       }
       if (q) {
         const hay = [r.agent, r.firstName, r.lastName, r.phone, r.company, r.state].join(" ").toLowerCase();
@@ -465,6 +525,11 @@
 
   function statusSelectHtml(row) {
     const s = row.status;
+    if (isRowLocked(row)) {
+      const label = s === "billable" ? "Billable" : s === "nonbillable" ? "Non-Billable" : s === "rejected" ? "Rejected" : "Pending";
+      const cls = s === "billable" ? "badge-billable" : s === "nonbillable" ? "badge-nonbillable" : s === "rejected" ? "badge-rejected" : "badge-pending";
+      return '<span class="badge ' + cls + '" title="Locked — already updated once">' + label + " 🔒</span>";
+    }
     return (
       '<select class="status-select ' + s + '" data-id="' + row._id + '">' +
       '<option value="billable"' + (s === "billable" ? " selected" : "") + ">Billable</option>" +
@@ -473,6 +538,23 @@
       '<option value="pending"' + (s === "pending" ? " selected" : "") + ">Pending</option>" +
       "</select>"
     );
+  }
+
+  function durationInputHtml(row) {
+    if (isRowLocked(row)) {
+      return '<span title="Locked">' + formatDuration(row.duration) + "</span>";
+    }
+    return '<input type="number" class="duration-input" step="1" min="0" value="' + (row.duration || 0) +
+      '" data-id="' + row._id + '" title="Seconds — one edit only" style="width:88px;padding:0.35rem 0.5rem;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:inherit;font-size:0.85rem;text-align:right;" />';
+  }
+
+  function payoutInputHtml(row, payout) {
+    if (isRowLocked(row)) {
+      return '<span class="payout-cell" title="Locked">' + formatCurrency(payout) + "</span>";
+    }
+    const forcedZero = row.status === "nonbillable" || row.status === "rejected";
+    return '<input type="number" class="payout-input" step="0.01" min="0" value="' + Number(payout).toFixed(2) +
+      '" data-id="' + row._id + '" ' + (forcedZero ? 'disabled title="Payout $0 when Non-Billable/Rejected"' : 'title="One edit only — then locked"') + " />";
   }
 
   function renderTable() {
@@ -504,14 +586,9 @@
         "<td>" + (escapeHtml(r.phone) || "—") + "</td>" +
         "<td>" + (escapeHtml(r.state) || "—") + "</td>" +
         '<td><span class="badge">' + (escapeHtml(r.company) || "—") + "</span></td>" +
-        "<td>" + formatDuration(r.duration) + "</td>" +
+        "<td>" + durationInputHtml(r) + "</td>" +
         "<td>" + statusSelectHtml(r) + "</td>" +
-        '<td><input type="number" class="payout-input" step="0.01" min="0" value="' +
-        Number(payout).toFixed(2) + '" data-id="' + r._id + '" ' +
-        (r.status === "nonbillable" || r.status === "rejected"
-          ? 'disabled title="Payout is $0 while Non-Billable or Rejected"'
-          : 'title="Edit payout (saves to sheet)"') +
-        " /></td>" +
+        "<td>" + payoutInputHtml(r, payout) + "</td>" +
         "</tr>"
       );
     }).join("");
@@ -523,25 +600,28 @@
           rawData.find(function (r) { return r._id === id; });
         if (!row) return;
 
+        if (isRowLocked(row)) {
+          showToast("This call is locked — already updated once", 3500);
+          renderTable();
+          return;
+        }
         const newStatus = e.target.value;
         row.status = newStatus;
         row.statusOverride = newStatus;
-        e.target.className = "status-select " + newStatus;
-
         updateMetrics(filteredData);
         showToast("Saving status…");
-
         const ok = await saveStatus(row, newStatus);
         if (ok) {
+          row.locked = true;
+          row.adminLocked = "Yes";
           showToast(
-            newStatus === "nonbillable" || newStatus === "rejected"
-              ? "Marked " + newStatus + " · payout set to $0"
-              : "Status updated to " + newStatus
+            (newStatus === "nonbillable" || newStatus === "rejected"
+              ? "Marked " + newStatus + " · payout $0"
+              : "Status updated") + " · call locked"
           );
         } else {
           showToast("Failed to save status", 4000);
         }
-        // re-render payout cell for this row
         renderTable();
       });
     });
@@ -553,9 +633,14 @@
         const row = filteredData.find(function (r) { return r._id === id; }) ||
           rawData.find(function (r) { return r._id === id; });
         if (!row) return;
+        if (isRowLocked(row)) {
+          showToast("This call is locked — already updated once", 3500);
+          renderTable();
+          return;
+        }
         if (row.status === "nonbillable" || row.status === "rejected") {
           e.target.value = "0.00";
-          showToast("Payout locked at $0 for Non-Billable / Rejected");
+          showToast("Payout is $0 for Non-Billable / Rejected");
           return;
         }
         const val = parseNumber(e.target.value);
@@ -564,7 +649,43 @@
         updateMetrics(filteredData);
         showToast("Saving payout…");
         const ok = await savePayout(row, val);
-        showToast(ok ? "Payout saved to sheet" : "Failed to save payout", ok ? 2800 : 4000);
+        if (ok) {
+          row.locked = true;
+          row.adminLocked = "Yes";
+          showToast("Payout saved · call locked");
+        } else {
+          showToast("Failed to save payout", 4000);
+        }
+        renderTable();
+      });
+    });
+
+    $$(".duration-input").forEach(function (inp) {
+      inp.addEventListener("change", async function (e) {
+        const id = e.target.dataset.id;
+        const row = filteredData.find(function (r) { return r._id === id; }) ||
+          rawData.find(function (r) { return r._id === id; });
+        if (!row) return;
+        if (isRowLocked(row)) {
+          showToast("This call is locked — already updated once", 3500);
+          renderTable();
+          return;
+        }
+        const val = Math.max(0, Math.round(parseNumber(e.target.value)));
+        row.duration = val;
+        e.target.value = String(val);
+        if (!row.statusOverride) row.status = resolveStatus(val, "");
+        updateMetrics(filteredData);
+        showToast("Saving duration…");
+        const ok = await saveDuration(row, val);
+        if (ok) {
+          row.locked = true;
+          row.adminLocked = "Yes";
+          showToast("Duration saved · call locked");
+        } else {
+          showToast("Failed to save duration", 4000);
+        }
+        renderTable();
       });
     });
   }
@@ -750,6 +871,7 @@
     if (loading) loading.classList.remove("hidden");
     try {
       rawData = await fetchSheetData();
+      rawData.forEach(function (r) { r.locked = isRowLocked(r); });
       populateFilters(rawData);
       applyFilters();
       const lu = $("#lastUpdated");

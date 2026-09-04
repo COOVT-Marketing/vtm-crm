@@ -109,28 +109,56 @@
     return "$" + Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
+
+  /** Parse sheet timestamp as Pakistan Standard Time (UTC+5) → Date (UTC) */
+  function parseSheetTimestamp(str) {
+    if (!str) return null;
+    const s = String(str).trim();
+    if (!s) return null;
+    const hasTZ = /[zZ]|[+\-]\d{2}:?\d{2}$/.test(s);
+    if (hasTZ) {
+      const d = new Date(s);
+      return isNaN(d.getTime()) ? null : d;
+    }
+    // YYYY-MM-DD HH:MM:SS or YYYY/MM/DD
+    let parts = s.match(/(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})(?:[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+    if (parts) {
+      const y = +parts[1], mo = +parts[2] - 1, day = +parts[3];
+      const h = +(parts[4] || 0), mi = +(parts[5] || 0), sec = +(parts[6] || 0);
+      return new Date(Date.UTC(y, mo, day, h - 5, mi, sec)); // PKT → UTC
+    }
+    // DD/MM/YYYY HH:MM:SS
+    parts = s.match(/(\d{1,2})[\/](\d{1,2})[\/](\d{4})(?:[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+    if (parts) {
+      const day = +parts[1], mo = +parts[2] - 1, y = +parts[3];
+      const h = +(parts[4] || 0), mi = +(parts[5] || 0), sec = +(parts[6] || 0);
+      return new Date(Date.UTC(y, mo, day, h - 5, mi, sec));
+    }
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  /** Calendar date YYYY-MM-DD in US Eastern (for date filters) */
+  function getEasternDateKey(str) {
+    const d = parseSheetTimestamp(str);
+    if (!d) return "";
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/New_York",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit"
+    }).formatToParts(d);
+    const get = function (type) {
+      const x = parts.find(function (p) { return p.type === type; });
+      return x ? x.value : "00";
+    };
+    return get("year") + "-" + get("month") + "-" + get("day");
+  }
+
   function formatDate(str) {
     if (!str) return "—";
-    let d = new Date(str);
-    if (isNaN(d.getTime())) return str;
-    const hasTZ = /[zZ]|[+\-]\d{2}:?\d{2}$/.test(String(str).trim());
-    if (!hasTZ) {
-      const parts = String(str).match(/(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?/);
-      if (parts) {
-        const y = +parts[1], mo = +parts[2] - 1, day = +parts[3];
-        const h = +parts[4], mi = +parts[5], s = +(parts[6] || 0);
-        d = new Date(Date.UTC(y, mo, day, h - 5, mi, s)); // PKT = UTC+5
-      } else {
-        // try DD/MM/YYYY HH:MM:SS
-        const parts2 = String(str).match(/(\d{1,2})[\/](\d{1,2})[\/](\d{4})[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?/);
-        if (parts2) {
-          const day = +parts2[1], mo = +parts2[2] - 1, y = +parts2[3];
-          const h = +parts2[4], mi = +parts2[5], s = +(parts2[6] || 0);
-          d = new Date(Date.UTC(y, mo, day, h - 5, mi, s));
-        }
-      }
-    }
-    // Display as YYYY-MM-DD HH:MM:SS in US Eastern
+    const d = parseSheetTimestamp(str);
+    if (!d) return str;
     const parts = new Intl.DateTimeFormat("en-CA", {
       timeZone: "America/New_York",
       year: "numeric",
@@ -420,15 +448,11 @@
     filteredData = rawData.filter(function (r) {
       if (agent && r.agent !== agent) return false;
       if (billableFilter && r.status !== billableFilter) return false;
-      if (from) {
-        const d = new Date(r.timestamp);
-        if (!isNaN(d) && d < new Date(from)) return false;
-      }
-      if (to) {
-        const d = new Date(r.timestamp);
-        const end = new Date(to);
-        end.setHours(23, 59, 59);
-        if (!isNaN(d) && d > end) return false;
+      if (from || to) {
+        const dayKey = getEasternDateKey(r.timestamp);
+        if (!dayKey) return false;
+        if (from && dayKey < from) return false;
+        if (to && dayKey > to) return false;
       }
       if (q) {
         const hay = [r.agent, r.firstName, r.lastName, r.phone, r.company, r.campaign, r.state, r.zip, r.comments, r.did].join(" ").toLowerCase();
