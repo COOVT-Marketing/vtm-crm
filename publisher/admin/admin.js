@@ -1,7 +1,6 @@
 (function () {
   "use strict";
 
-  // ─── CONFIG ───────────────────────────────────────────────────
   const SHEET_ID = "11SF4e1EvNZ0ysBLt6UJXufu6CbimL_iRTWHI3VNrDyw";
   const SHEET_NAME = "Auto";
   const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}`;
@@ -9,7 +8,10 @@
   const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwZo2WecH8AbJ2rx6-YM7nVzO6D7l7Qn8tMmYQdVMopnIyuCy3SkfZibVS5ibHFtces-w/exec";
 
   const BILLABLE_THRESHOLD_SECONDS = 120;
-  const SESSION_KEY = "vtm_publisher_session";
+  const SESSION_KEY = "vtm_admin_session";
+
+  // Sheet timestamps are Pakistan Standard Time (UTC+5)
+  const SHEET_TZ_OFFSET_HOURS = 5;
 
   const COL_MAP = {
     timestamp: ["timestamp", "date", "time"],
@@ -19,21 +21,15 @@
     lastName: ["last name", "lastname", "last"],
     age: ["age"],
     state: ["state"],
-    zip: ["zip", "zipcode", "zip code"],
-    dob: ["dob", "date of birth", "birthdate"],
     company: ["company", "client", "publisher"],
-    campaign: ["campaign"],
-    did: ["did", "d.i.d"],
-    comments: ["comments", "comment", "notes"],
     payout: ["payout", "bid", "bid/payout", "amount", "pay"],
     duration: ["duration", "call duration", "talk time", "minutes", "seconds", "call time"],
-    statusOverride: ["status override", "qa status", "status", "billable status", "override status"],
+    statusOverride: ["status override", "qa status", "status", "billable status", "override status"]
   };
 
   let rawData = [];
   let filteredData = [];
-  let localPayouts = {};
-  let currentUser = null; // { company, username }
+  let currentUser = null;
 
   const $ = (s) => document.querySelector(s);
   const $$ = (s) => document.querySelectorAll(s);
@@ -48,36 +44,18 @@
 
   function parseCSV(text) {
     const rows = [];
-    let current = "";
-    let inQuotes = false;
-    let row = [];
+    let current = "", inQuotes = false, row = [];
     for (let i = 0; i < text.length; i++) {
-      const c = text[i];
-      const next = text[i + 1];
-      if (c === '"' && inQuotes && next === '"') {
-        current += '"';
-        i++;
-      } else if (c === '"') {
-        inQuotes = !inQuotes;
-      } else if (c === "," && !inQuotes) {
-        row.push(current);
-        current = "";
-      } else if ((c === "\n" || c === "\r") && !inQuotes) {
-        if (current || row.length) {
-          row.push(current);
-          rows.push(row);
-          row = [];
-          current = "";
-        }
+      const c = text[i], next = text[i + 1];
+      if (c === '"' && inQuotes && next === '"') { current += '"'; i++; }
+      else if (c === '"') inQuotes = !inQuotes;
+      else if (c === "," && !inQuotes) { row.push(current); current = ""; }
+      else if ((c === "\n" || c === "\r") && !inQuotes) {
+        if (current || row.length) { row.push(current); rows.push(row); row = []; current = ""; }
         if (c === "\r" && next === "\n") i++;
-      } else {
-        current += c;
-      }
+      } else current += c;
     }
-    if (current || row.length) {
-      row.push(current);
-      rows.push(row);
-    }
+    if (current || row.length) { row.push(current); rows.push(row); }
     return rows;
   }
 
@@ -109,23 +87,34 @@
     return "$" + Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
-  function formatDate(str) {
+  /** Parse sheet timestamp as PKT and display in US Eastern */
+  function formatDateEastern(str) {
     if (!str) return "—";
     let d = new Date(str);
     if (isNaN(d.getTime())) return str;
-    const hasTZ = /[zZ]|[+\-]\d{2}:?\d{2}$/.test(String(str).trim());
+
+    // Treat naive sheet times as Pakistan Standard Time (UTC+5)
+    // If the string has no timezone, adjust from "local parse as PKT" to Eastern
+    const hasTZ = /[zZ]|[+-]\d{2}:?\d{2}$/.test(String(str).trim());
     if (!hasTZ) {
+      // Parsed as browser local — rebuild as if the clock values were PKT
       const parts = String(str).match(/(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?/);
       if (parts) {
         const y = +parts[1], mo = +parts[2] - 1, day = +parts[3];
         const h = +parts[4], mi = +parts[5], s = +(parts[6] || 0);
-        d = new Date(Date.UTC(y, mo, day, h - 5, mi, s)); // PKT = UTC+5
+        // PKT = UTC+5 → UTC = PKT - 5h
+        d = new Date(Date.UTC(y, mo, day, h - SHEET_TZ_OFFSET_HOURS, mi, s));
       }
     }
+
     return d.toLocaleString("en-US", {
       timeZone: "America/New_York",
-      month: "short", day: "numeric", year: "numeric",
-      hour: "2-digit", minute: "2-digit", hour12: true
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true
     }) + " ET";
   }
 
@@ -136,12 +125,19 @@
     return m > 0 ? m + "m " + s + "s" : s + "s";
   }
 
+  /**
+   * Resolve final status:
+   * 1. Explicit override from sheet (admin-set)
+   * 2. Default from duration (<120 nonbillable, >=120 billable)
+   * 3. pending if no duration
+   */
   function resolveStatus(durationSeconds, override) {
     const o = (override || "").toString().trim().toLowerCase().replace(/[\s_-]+/g, "");
     if (o === "billable" || o === "billed") return "billable";
     if (o === "nonbillable" || o === "nb") return "nonbillable";
     if (o === "rejected" || o === "reject" || o === "qa" || o === "qarejected") return "rejected";
     if (o === "pending") return "pending";
+
     if (durationSeconds == null || durationSeconds === "" || Number(durationSeconds) <= 0) return "pending";
     const sec = Number(durationSeconds);
     if (isNaN(sec) || sec <= 0) return "pending";
@@ -162,51 +158,30 @@
     };
   }
 
-  /** Company from URL: ?company=Leadzone */
-  function getCompanyFromUrl() {
-    const p = new URLSearchParams(window.location.search);
-    return (p.get("company") || "").trim();
-  }
-
-  // ─── SESSION ──────────────────────────────────────────────────
   function loadSession() {
     try {
       const raw = sessionStorage.getItem(SESSION_KEY);
       if (!raw) return null;
       const data = JSON.parse(raw);
-      if (!data || !data.company || !data.username) return null;
-      // Session must match the company in the URL
-      const urlCompany = getCompanyFromUrl();
-      if (urlCompany && data.company.toLowerCase() !== urlCompany.toLowerCase()) {
-        clearSession();
-        return null;
-      }
-      return data;
-    } catch (e) {
-      return null;
-    }
+      if (data && data.username) return data;
+    } catch (e) {}
+    return null;
   }
 
-  function saveSession(company, username) {
-    sessionStorage.setItem(
-      SESSION_KEY,
-      JSON.stringify({ company: company, username: username, ts: Date.now() })
-    );
+  function saveSession(username) {
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify({ username: username, ts: Date.now() }));
   }
 
   function clearSession() {
     sessionStorage.removeItem(SESSION_KEY);
   }
 
-  // ─── AUTH ─────────────────────────────────────────────────────
-  async function attemptLogin(company, username, password) {
+  async function attemptLogin(username, password) {
     const payload = {
-      submissionType: "PUBLISHER_LOGIN",
-      company: company.trim(),
+      submissionType: "ADMIN_LOGIN",
       username: username.trim(),
       password: password
     };
-
     try {
       const res = await fetch(APPS_SCRIPT_URL, {
         method: "POST",
@@ -216,51 +191,85 @@
       });
       const text = await res.text();
       let json;
-      try {
-        json = JSON.parse(text);
-      } catch (e) {
+      try { json = JSON.parse(text); }
+      catch (e) {
         const m = text.match(/\{[\s\S]*\}/);
         if (m) json = JSON.parse(m[0]);
-        else throw new Error("Invalid response from server");
+        else throw new Error("Invalid response");
       }
-      if (json.status === "success" && json.company && json.username) {
-        return { ok: true, company: json.company, username: json.username };
+      if (json.status === "success" && json.username) {
+        return { ok: true, username: json.username };
       }
-      return { ok: false, message: json.message || "Invalid username or password" };
+      return { ok: false, message: json.message || "Invalid credentials" };
     } catch (err) {
-      console.warn("CORS login failed, trying GET…", err.message);
       try {
-        const url =
-          APPS_SCRIPT_URL +
-          "?action=login" +
-          "&company=" + encodeURIComponent(company.trim()) +
-          "&username=" + encodeURIComponent(username.trim()) +
+        const url = APPS_SCRIPT_URL +
+          "?action=admin_login&username=" + encodeURIComponent(username.trim()) +
           "&password=" + encodeURIComponent(password);
         const res = await fetch(url, { method: "GET", redirect: "follow" });
         const text = await res.text();
         let json;
-        try {
-          json = JSON.parse(text);
-        } catch (e) {
+        try { json = JSON.parse(text); }
+        catch (e) {
           const m = text.match(/\{[\s\S]*\}/);
           if (m) json = JSON.parse(m[0]);
           else throw new Error("Invalid response");
         }
-        if (json.status === "success" && json.company && json.username) {
-          return { ok: true, company: json.company, username: json.username };
+        if (json.status === "success" && json.username) {
+          return { ok: true, username: json.username };
         }
-        return { ok: false, message: json.message || "Invalid username or password" };
+        return { ok: false, message: json.message || "Invalid credentials" };
       } catch (err2) {
-        console.error(err2);
         return {
           ok: false,
-          message: "Unable to reach login server. Check Apps Script deployment (Execute as: Me, Who has access: Anyone)."
+          message: "Unable to reach login server. Check Apps Script deployment."
         };
       }
     }
   }
 
-  // ─── DATA FETCH ───────────────────────────────────────────────
+  async function saveStatus(row, newStatus) {
+    try {
+      await fetch(APPS_SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({
+          submissionType: "UPDATE_STATUS",
+          sheetName: "Auto",
+          timestamp: row.timestamp,
+          phone: row.phone,
+          status: newStatus,
+          adminUser: currentUser ? currentUser.username : ""
+        })
+      });
+      return true;
+    } catch (e) {
+      console.error(e);
+      return false;
+    }
+  }
+
+  function mapRow(r, col, i) {
+    const duration = parseNumber(r[col.duration]);
+    const override = col.statusOverride != null ? (r[col.statusOverride] || "") : "";
+    return {
+      _id: "r" + i,
+      timestamp: r[col.timestamp] || "",
+      agent: r[col.agent] || "",
+      phone: r[col.phone] || "",
+      firstName: r[col.firstName] || "",
+      lastName: r[col.lastName] || "",
+      age: r[col.age] || "",
+      state: r[col.state] || "",
+      company: r[col.company] || "",
+      payout: parseNumber(r[col.payout]),
+      duration: duration,
+      statusOverride: override,
+      status: resolveStatus(duration, override)
+    };
+  }
+
   async function fetchSheetData() {
     try {
       const res = await fetch(CSV_URL, { cache: "no-store" });
@@ -271,30 +280,9 @@
       }
       const rows = parseCSV(text);
       if (rows.length < 2) return [];
-      const headers = rows[0];
-      const col = mapColumns(headers);
+      const col = mapColumns(rows[0]);
       return rows.slice(1).map(function (r, i) {
-        const duration = parseNumber(r[col.duration]);
-        const override = col.statusOverride != null ? (r[col.statusOverride] || "") : "";
-        return {
-          _id: "r" + i,
-          timestamp: r[col.timestamp] || "",
-          agent: r[col.agent] || "",
-          phone: r[col.phone] || "",
-          firstName: r[col.firstName] || "",
-          lastName: r[col.lastName] || "",
-          age: r[col.age] || "",
-          state: r[col.state] || "",
-          zip: r[col.zip] || "",
-          dob: r[col.dob] || "",
-          company: r[col.company] || "",
-          campaign: r[col.campaign] || "",
-          did: r[col.did] || "",
-          comments: r[col.comments] || "",
-          payout: parseNumber(r[col.payout]),
-          duration: duration,
-          status: resolveStatus(duration, override)
-        };
+        return mapRow(r, col, i);
       }).filter(function (r) {
         return r.timestamp || r.phone || r.firstName || r.agent;
       });
@@ -303,9 +291,7 @@
       const res = await fetch(JSON_URL, { cache: "no-store" });
       const text = await res.text();
       const match = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]+)\)/);
-      if (!match) {
-        throw new Error("Unable to parse sheet response. Make sure the sheet is shared publicly (Anyone with the link → Viewer).");
-      }
+      if (!match) throw new Error("Unable to parse sheet. Share as Anyone with the link → Viewer.");
       const obj = JSON.parse(match[1]);
       const table = obj.table;
       const headers = table.cols.map(function (c) { return c.label || ""; });
@@ -318,6 +304,7 @@
           return cells[idx].v != null ? cells[idx].v : (cells[idx].f || "");
         };
         const duration = parseNumber(get("duration"));
+        const override = get("statusOverride");
         return {
           _id: "r" + i,
           timestamp: get("timestamp"),
@@ -327,15 +314,11 @@
           lastName: get("lastName"),
           age: get("age"),
           state: get("state"),
-          zip: get("zip"),
-          dob: get("dob"),
           company: get("company"),
-          campaign: get("campaign"),
-          did: get("did"),
-          comments: get("comments"),
           payout: parseNumber(get("payout")),
           duration: duration,
-          status: resolveStatus(duration, get("statusOverride"))
+          statusOverride: override,
+          status: resolveStatus(duration, override)
         };
       }).filter(function (r) {
         return r.timestamp || r.phone || r.firstName || r.agent;
@@ -343,48 +326,42 @@
     }
   }
 
-  function applyCompanyFilter(data) {
-    if (!currentUser || !currentUser.company) return data;
-    const companyLower = currentUser.company.toLowerCase();
-    return data.filter(function (r) {
-      return (r.company || "").toLowerCase() === companyLower;
-    });
-  }
-
-  function getEffectivePayout(row) {
-    // Non-billable always $0; payout is read-only from sheet (admin only)
+  /** Payout is $0 when non-billable or rejected */
+  function getDisplayPayout(row) {
     if (row.status === "nonbillable" || row.status === "rejected") return 0;
     return row.payout;
   }
 
   function updateMetrics(data) {
     const total = data.length;
-    const billableRows = data.filter(function (r) { return r.status === "billable"; });
-    const nonBillableRows = data.filter(function (r) { return r.status === "nonbillable"; });
+    const billable = data.filter(function (r) { return r.status === "billable"; });
+    const nonBillable = data.filter(function (r) { return r.status === "nonbillable"; });
+    const rejected = data.filter(function (r) { return r.status === "rejected"; });
+    const pending = data.filter(function (r) { return r.status === "pending"; });
 
     let sumPayout = 0;
     let sumDuration = 0;
     let durationCount = 0;
 
-    billableRows.forEach(function (r) {
-      sumPayout += getEffectivePayout(r);
-    });
-
+    billable.forEach(function (r) { sumPayout += getDisplayPayout(r); });
     data.forEach(function (r) {
-      if (r.duration > 0) {
-        sumDuration += r.duration;
-        durationCount++;
-      }
+      if (r.duration > 0) { sumDuration += r.duration; durationCount++; }
     });
 
-    const avgPayout = billableRows.length ? sumPayout / billableRows.length : 0;
+    const avgPayout = billable.length ? sumPayout / billable.length : 0;
     const avgDuration = durationCount ? sumDuration / durationCount : null;
 
     const el = function (id) { return document.getElementById(id); };
     if (el("mTotalSales")) {
       el("mTotalSales").textContent = total.toLocaleString();
       const sub = el("mTotalSales").parentElement && el("mTotalSales").parentElement.querySelector(".metric-sub");
-      if (sub) sub.textContent = billableRows.length + " billable · " + nonBillableRows.length + " rejected";
+      if (sub) {
+        sub.textContent =
+          billable.length + " billable · " +
+          nonBillable.length + " non-billable · " +
+          rejected.length + " rejected · " +
+          pending.length + " pending";
+      }
     }
     if (el("mTotalPayout")) el("mTotalPayout").textContent = formatCurrency(sumPayout);
     if (el("mAvgPayout")) el("mAvgPayout").textContent = formatCurrency(avgPayout);
@@ -394,13 +371,15 @@
   function applyFilters() {
     const q = ($("#searchInput") && $("#searchInput").value || "").toLowerCase().trim();
     const agent = ($("#filterAgent") && $("#filterAgent").value) || "";
+    const company = ($("#filterCompany") && $("#filterCompany").value) || "";
+    const status = ($("#filterStatus") && $("#filterStatus").value) || "";
     const from = ($("#filterFrom") && $("#filterFrom").value) || "";
     const to = ($("#filterTo") && $("#filterTo").value) || "";
-    const billableFilter = ($("#filterBillable") && $("#filterBillable").value) || "";
 
     filteredData = rawData.filter(function (r) {
       if (agent && r.agent !== agent) return false;
-      if (billableFilter && r.status !== billableFilter) return false;
+      if (company && r.company !== company) return false;
+      if (status && r.status !== status) return false;
       if (from) {
         const d = new Date(r.timestamp);
         if (!isNaN(d) && d < new Date(from)) return false;
@@ -412,7 +391,7 @@
         if (!isNaN(d) && d > end) return false;
       }
       if (q) {
-        const hay = [r.agent, r.firstName, r.lastName, r.phone, r.company, r.campaign, r.state, r.zip, r.comments, r.did].join(" ").toLowerCase();
+        const hay = [r.agent, r.firstName, r.lastName, r.phone, r.company, r.state].join(" ").toLowerCase();
         if (hay.indexOf(q) === -1) return false;
       }
       return true;
@@ -422,35 +401,48 @@
     updateMetrics(filteredData);
   }
 
-  function populateAgentFilter(data) {
-    const agents = [];
-    const seen = {};
+  function populateFilters(data) {
+    const agents = [], companies = [], seenA = {}, seenC = {};
     data.forEach(function (r) {
-      if (r.agent && !seen[r.agent]) {
-        seen[r.agent] = true;
-        agents.push(r.agent);
-      }
+      if (r.agent && !seenA[r.agent]) { seenA[r.agent] = true; agents.push(r.agent); }
+      if (r.company && !seenC[r.company]) { seenC[r.company] = true; companies.push(r.company); }
     });
     agents.sort();
-    const sel = $("#filterAgent");
-    if (!sel) return;
-    const current = sel.value;
-    sel.innerHTML = '<option value="">All Agents</option>';
-    agents.forEach(function (a) {
-      const opt = document.createElement("option");
-      opt.value = a;
-      opt.textContent = a;
-      sel.appendChild(opt);
-    });
-    if (current) sel.value = current;
+    companies.sort();
+
+    const selA = $("#filterAgent");
+    if (selA) {
+      const cur = selA.value;
+      selA.innerHTML = '<option value="">All Agents</option>';
+      agents.forEach(function (a) {
+        const o = document.createElement("option");
+        o.value = a; o.textContent = a; selA.appendChild(o);
+      });
+      if (cur) selA.value = cur;
+    }
+
+    const selC = $("#filterCompany");
+    if (selC) {
+      const cur = selC.value;
+      selC.innerHTML = '<option value="">All Companies</option>';
+      companies.forEach(function (c) {
+        const o = document.createElement("option");
+        o.value = c; o.textContent = c; selC.appendChild(o);
+      });
+      if (cur) selC.value = cur;
+    }
   }
 
-  function billableBadge(status) {
-    if (status === "billable") return '<span class="badge badge-billable">Billable</span>';
-    if (status === "nonbillable") return '<span class="badge badge-nonbillable">Non-Billable</span>';
-    if (status === "rejected") return '<span class="badge badge-rejected">Rejected</span>';
-    if (status === "pending") return '<span class="badge badge-pending">Pending</span>';
-    return '<span class="badge badge-unknown">Unknown</span>';
+  function statusSelectHtml(row) {
+    const s = row.status;
+    return (
+      '<select class="status-select ' + s + '" data-id="' + row._id + '">' +
+      '<option value="billable"' + (s === "billable" ? " selected" : "") + ">Billable</option>" +
+      '<option value="nonbillable"' + (s === "nonbillable" ? " selected" : "") + ">Non-Billable</option>" +
+      '<option value="rejected"' + (s === "rejected" ? " selected" : "") + ">Rejected</option>" +
+      '<option value="pending"' + (s === "pending" ? " selected" : "") + ">Pending</option>" +
+      "</select>"
+    );
   }
 
   function renderTable() {
@@ -471,24 +463,53 @@
     if (empty) empty.classList.add("hidden");
 
     tbody.innerHTML = filteredData.map(function (r) {
-      const payout = getEffectivePayout(r);
+      const payout = getDisplayPayout(r);
       const name = [r.firstName, r.lastName].filter(Boolean).join(" ") || "—";
-      const isNonBillable = r.status === "nonbillable";
+      const dim = (r.status === "nonbillable" || r.status === "rejected") ? "opacity:0.8;" : "";
       return (
-        '<tr data-id="' + r._id + '" style="' + (isNonBillable ? "opacity:0.75;" : "") + '">' +
-        "<td>" + formatDate(r.timestamp) + "</td>" +
+        '<tr data-id="' + r._id + '" style="' + dim + '">' +
+        "<td>" + formatDateEastern(r.timestamp) + "</td>" +
         "<td>" + (escapeHtml(r.agent) || "—") + "</td>" +
         "<td>" + escapeHtml(name) + "</td>" +
         "<td>" + (escapeHtml(r.phone) || "—") + "</td>" +
-        "<td>" + (escapeHtml(r.age) || "—") + "</td>" +
         "<td>" + (escapeHtml(r.state) || "—") + "</td>" +
         '<td><span class="badge">' + (escapeHtml(r.company) || "—") + "</span></td>" +
         "<td>" + formatDuration(r.duration) + "</td>" +
-        "<td>" + billableBadge(r.status) + "</td>" +
+        "<td>" + statusSelectHtml(r) + "</td>" +
         '<td class="payout-cell">' + formatCurrency(payout) + "</td>" +
         "</tr>"
       );
     }).join("");
+
+    $$(".status-select").forEach(function (sel) {
+      sel.addEventListener("change", async function (e) {
+        const id = e.target.dataset.id;
+        const row = filteredData.find(function (r) { return r._id === id; }) ||
+          rawData.find(function (r) { return r._id === id; });
+        if (!row) return;
+
+        const newStatus = e.target.value;
+        row.status = newStatus;
+        row.statusOverride = newStatus;
+        e.target.className = "status-select " + newStatus;
+
+        updateMetrics(filteredData);
+        showToast("Saving status…");
+
+        const ok = await saveStatus(row, newStatus);
+        if (ok) {
+          showToast(
+            newStatus === "nonbillable" || newStatus === "rejected"
+              ? "Marked " + newStatus + " · payout set to $0"
+              : "Status updated to " + newStatus
+          );
+        } else {
+          showToast("Failed to save status", 4000);
+        }
+        // re-render payout cell for this row
+        renderTable();
+      });
+    });
   }
 
   function exportCSV() {
@@ -497,18 +518,18 @@
       return;
     }
     const headers = [
-      "Timestamp", "Agent", "First Name", "Last Name", "Phone", "Age", "State",
-      "Company", "Duration (sec)", "Billable Status", "Payout"
+      "Timestamp (ET)", "Agent", "First Name", "Last Name", "Phone", "State",
+      "Company", "Duration (sec)", "Status", "Payout"
     ];
     const lines = [headers.join(",")];
     filteredData.forEach(function (r) {
       const statusLabel =
         r.status === "billable" ? "Billable" :
-        r.status === "nonbillable" ? "Non-Billable" : "Unknown";
+        r.status === "nonbillable" ? "Non-Billable" :
+        r.status === "rejected" ? "Rejected" : "Pending";
       const row = [
-        r.timestamp, r.agent, r.firstName, r.lastName, r.phone, r.age, r.state,
-        r.company, r.duration || "", statusLabel,
-        getEffectivePayout(r).toFixed(2)
+        formatDateEastern(r.timestamp), r.agent, r.firstName, r.lastName, r.phone, r.state,
+        r.company, r.duration || "", statusLabel, getDisplayPayout(r).toFixed(2)
       ].map(function (v) {
         return '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
       });
@@ -518,64 +539,38 @@
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "vtm-publisher-export-" + new Date().toISOString().slice(0, 10) + ".csv";
+    a.download = "vtm-admin-export-" + new Date().toISOString().slice(0, 10) + ".csv";
     a.click();
     URL.revokeObjectURL(url);
     showToast("CSV exported");
   }
 
-  // ─── LOGIN UI ─────────────────────────────────────────────────
   function buildLoginUI() {
     const root = document.getElementById("root");
     if (!root) return;
-
-    const urlCompany = getCompanyFromUrl();
-
-    // No company in URL → show guidance
-    if (!urlCompany) {
-      root.innerHTML =
-        '<div class="login-screen">' +
-        '<div class="login-card">' +
-        '<div class="login-brand">' +
-        '<img src="logo.png" alt="Vocal Tech Marketing" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\'">' +
-        '<div class="brand-fallback" style="display:none;">VT</div>' +
-        "<h1>Vocal Tech Marketing</h1>" +
-        "<p>Publisher Portal</p>" +
-        "</div>" +
-        '<div class="login-error show" style="display:block;">' +
-        "Missing company link.<br><br>" +
-        "Please open your dedicated portal URL, for example:<br>" +
-        "<strong>crm.vocaltechmarketing.com/publisher/?company=Leadzone</strong>" +
-        "</div>" +
-        '<div class="login-footer">Contact VTM admin for your company login link.</div>' +
-        "</div></div>";
-      return;
-    }
 
     root.innerHTML =
       '<div class="login-screen">' +
       '<div class="login-card">' +
       '<div class="login-brand">' +
-      '<img src="logo.png" alt="Vocal Tech Marketing" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\'">' +
+      '<img src="../logo.png" alt="VTM" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\'">' +
       '<div class="brand-fallback" style="display:none;">VT</div>' +
       "<h1>Vocal Tech Marketing</h1>" +
-      "<p>Publisher Portal · <strong>" + escapeHtml(urlCompany) + "</strong></p>" +
+      '<p>Admin Portal <span class="admin-tag">QA / Billing</span></p>' +
       "</div>" +
       '<div class="login-error" id="loginError"></div>' +
       '<form id="loginForm">' +
       '<div class="login-field">' +
       '<label for="loginUsername">Username</label>' +
-      '<input type="text" id="loginUsername" name="username" required placeholder="Your username" autocomplete="username" autofocus />' +
+      '<input type="text" id="loginUsername" required placeholder="Admin username" autocomplete="username" autofocus />' +
       "</div>" +
       '<div class="login-field">' +
       '<label for="loginPassword">Password</label>' +
-      '<input type="password" id="loginPassword" name="password" required placeholder="••••••••" autocomplete="current-password" />' +
+      '<input type="password" id="loginPassword" required placeholder="••••••••" autocomplete="current-password" />' +
       "</div>" +
-      '<button type="submit" class="login-btn" id="loginBtn">' +
-      '<i class="ti ti-login"></i> Sign In' +
-      "</button>" +
+      '<button type="submit" class="login-btn" id="loginBtn"><i class="ti ti-shield-lock"></i> Sign In</button>' +
       "</form>" +
-      '<div class="login-footer">Contact VTM admin if you need access credentials.</div>' +
+      '<div class="login-footer">VTM internal use only</div>' +
       "</div></div>";
 
     $("#loginForm").addEventListener("submit", async function (e) {
@@ -586,7 +581,7 @@
       const btn = $("#loginBtn");
 
       if (!username || !password) {
-        errEl.textContent = "Please enter username and password.";
+        errEl.textContent = "Enter username and password.";
         errEl.classList.add("show");
         return;
       }
@@ -595,59 +590,52 @@
       btn.disabled = true;
       btn.innerHTML = '<i class="ti ti-loader"></i> Signing in…';
 
-      const result = await attemptLogin(urlCompany, username, password);
-
+      const result = await attemptLogin(username, password);
       if (result.ok) {
-        currentUser = { company: result.company, username: result.username };
-        saveSession(result.company, result.username);
+        currentUser = { username: result.username };
+        saveSession(result.username);
         showDashboard();
       } else {
-        errEl.textContent = result.message || "Invalid username or password.";
+        errEl.textContent = result.message || "Invalid credentials.";
         errEl.classList.add("show");
         btn.disabled = false;
-        btn.innerHTML = '<i class="ti ti-login"></i> Sign In';
+        btn.innerHTML = '<i class="ti ti-shield-lock"></i> Sign In';
       }
     });
   }
 
-  // ─── DASHBOARD UI ─────────────────────────────────────────────
   function buildDashboardUI() {
     const root = document.getElementById("root");
     if (!root) return;
-
-    const companyName = currentUser ? currentUser.company : "Publisher";
-    const userName = currentUser ? currentUser.username : "";
+    const userName = currentUser ? currentUser.username : "Admin";
 
     root.innerHTML =
       '<div id="loading" class="loading-overlay hidden">' +
       '<div class="spinner"></div>' +
-      '<div style="color:var(--text-muted);font-size:0.9rem;">Loading live data…</div>' +
-      "</div>" +
-      '<header class="header">' +
-      '<div class="header-inner">' +
+      '<div style="color:var(--text-muted);font-size:0.9rem;">Loading live data…</div></div>' +
+      '<header class="header"><div class="header-inner">' +
       '<div class="brand">' +
-      '<img src="logo.png" alt="Vocal Tech Marketing" id="logoImg" onerror="this.style.display=\'none\';document.getElementById(\'logoFallback\').style.display=\'grid\'">' +
+      '<img src="../logo.png" alt="VTM" onerror="this.style.display=\'none\';document.getElementById(\'logoFallback\').style.display=\'grid\'">' +
       '<div class="brand-fallback" id="logoFallback" style="display:none;">VT</div>' +
-      '<div class="brand-text"><h1>Vocal Tech Marketing</h1><span>Publisher Portal</span></div>' +
-      "</div>" +
+      '<div class="brand-text"><h1>Vocal Tech Marketing</h1><span>Admin Portal · QA / Billing</span></div></div>' +
       '<div class="header-actions">' +
-      '<span class="user-badge"><i class="ti ti-building"></i> ' + escapeHtml(companyName) +
-      (userName ? ' · ' + escapeHtml(userName) : "") + "</span>" +
-      '<button class="btn" id="btnRefresh" title="Refresh data"><i class="ti ti-refresh"></i> Refresh</button>' +
-      '<button class="btn btn-primary" id="btnExport" title="Export CSV"><i class="ti ti-download"></i> Export</button>' +
-      '<button class="btn btn-logout" id="btnLogout" title="Sign out"><i class="ti ti-logout"></i> Logout</button>' +
+      '<span class="user-badge"><i class="ti ti-shield"></i> ' + escapeHtml(userName) + "</span>" +
+      '<button class="btn" id="btnRefresh"><i class="ti ti-refresh"></i> Refresh</button>' +
+      '<button class="btn btn-primary" id="btnExport"><i class="ti ti-download"></i> Export</button>' +
+      '<button class="btn btn-logout" id="btnLogout"><i class="ti ti-logout"></i> Logout</button>' +
       "</div></div></header>" +
       '<main class="container">' +
       '<div class="metrics">' +
-      '<div class="metric-card"><div class="metric-label"><i class="ti ti-chart-bar"></i> Total Sales</div><div class="metric-value" id="mTotalSales">—</div><div class="metric-sub">Billable · Rejected</div></div>' +
-      '<div class="metric-card"><div class="metric-label"><i class="ti ti-currency-dollar"></i> Total Payout</div><div class="metric-value" id="mTotalPayout">—</div><div class="metric-sub">Billable sales only</div></div>' +
+      '<div class="metric-card"><div class="metric-label"><i class="ti ti-chart-bar"></i> Total Sales</div><div class="metric-value" id="mTotalSales">—</div><div class="metric-sub">All statuses</div></div>' +
+      '<div class="metric-card"><div class="metric-label"><i class="ti ti-currency-dollar"></i> Total Payout</div><div class="metric-value" id="mTotalPayout">—</div><div class="metric-sub">Billable only (non-billable = $0)</div></div>' +
       '<div class="metric-card"><div class="metric-label"><i class="ti ti-calculator"></i> Avg Payout</div><div class="metric-value" id="mAvgPayout">—</div><div class="metric-sub">Per billable sale</div></div>' +
       '<div class="metric-card"><div class="metric-label"><i class="ti ti-clock"></i> Avg Duration</div><div class="metric-value" id="mAvgDuration">—</div><div class="metric-sub">All calls</div></div>' +
       "</div>" +
       '<div class="filters">' +
-      '<div class="search-wrap"><i class="ti ti-search"></i><input type="text" class="search-input" id="searchInput" placeholder="Search name, phone, agent…" /></div>' +
+      '<div class="search-wrap"><i class="ti ti-search"></i><input type="text" class="search-input" id="searchInput" placeholder="Search name, phone, agent, company…" /></div>' +
+      '<div><span class="filter-label">Company</span><select class="filter-select" id="filterCompany"><option value="">All Companies</option></select></div>' +
       '<div><span class="filter-label">Agent</span><select class="filter-select" id="filterAgent"><option value="">All Agents</option></select></div>' +
-      '<div><span class="filter-label">Status</span><select class="filter-select" id="filterBillable">' +
+      '<div><span class="filter-label">Status</span><select class="filter-select" id="filterStatus">' +
       '<option value="">All Status</option>' +
       '<option value="billable">Billable</option>' +
       '<option value="nonbillable">Non-Billable</option>' +
@@ -659,35 +647,38 @@
       '<button class="btn" id="btnClearFilters"><i class="ti ti-x"></i> Clear</button>' +
       "</div>" +
       '<div class="table-card">' +
-      '<div class="table-header"><h2>Sales Records — ' + escapeHtml(companyName) + '</h2><span class="table-count" id="tableCount">0 records</span></div>' +
+      '<div class="table-header"><h2>All Sales Records <span class="admin-tag">Admin</span></h2><span class="table-count" id="tableCount">0 records</span></div>' +
       '<div class="table-wrap"><table><thead><tr>' +
-      "<th>Timestamp</th><th>Agent</th><th>Name</th><th>Phone</th><th>Age</th><th>State</th>" +
+      "<th>Timestamp (ET)</th><th>Agent</th><th>Name</th><th>Phone</th><th>State</th>" +
       "<th>Company</th><th>Duration</th><th>Status</th><th>Payout ($)</th>" +
       '</tr></thead><tbody id="tableBody"></tbody></table>' +
       '<div id="emptyState" class="empty-state hidden"><i class="ti ti-database-off"></i><div>No records match your filters.</div></div>' +
       "</div></div>" +
-      '<div class="status-bar"><div><span class="status-dot"></span> Live data · Sheet: Auto</div><div id="lastUpdated">Last updated: —</div></div>' +
+      '<div class="status-bar"><div><span class="status-dot"></span> Live · Auto sheet · Default &lt;120s = Non-Billable · Override available</div>' +
+      '<div id="lastUpdated">Last updated: —</div></div>' +
       "</main>" +
       '<div class="toast" id="toast"></div>';
 
-    $("#btnRefresh") && $("#btnRefresh").addEventListener("click", loadData);
-    $("#btnExport") && $("#btnExport").addEventListener("click", exportCSV);
-    $("#btnLogout") && $("#btnLogout").addEventListener("click", function () {
+    $("#btnRefresh").addEventListener("click", loadData);
+    $("#btnExport").addEventListener("click", exportCSV);
+    $("#btnLogout").addEventListener("click", function () {
       clearSession();
       currentUser = null;
       buildLoginUI();
     });
-    $("#searchInput") && $("#searchInput").addEventListener("input", debounce(applyFilters, 220));
-    $("#filterAgent") && $("#filterAgent").addEventListener("change", applyFilters);
-    $("#filterBillable") && $("#filterBillable").addEventListener("change", applyFilters);
-    $("#filterFrom") && $("#filterFrom").addEventListener("change", applyFilters);
-    $("#filterTo") && $("#filterTo").addEventListener("change", applyFilters);
-    $("#btnClearFilters") && $("#btnClearFilters").addEventListener("click", function () {
-      if ($("#searchInput")) $("#searchInput").value = "";
-      if ($("#filterAgent")) $("#filterAgent").value = "";
-      if ($("#filterBillable")) $("#filterBillable").value = "";
-      if ($("#filterFrom")) $("#filterFrom").value = "";
-      if ($("#filterTo")) $("#filterTo").value = "";
+    $("#searchInput").addEventListener("input", debounce(applyFilters, 220));
+    $("#filterAgent").addEventListener("change", applyFilters);
+    $("#filterCompany").addEventListener("change", applyFilters);
+    $("#filterStatus").addEventListener("change", applyFilters);
+    $("#filterFrom").addEventListener("change", applyFilters);
+    $("#filterTo").addEventListener("change", applyFilters);
+    $("#btnClearFilters").addEventListener("click", function () {
+      $("#searchInput").value = "";
+      $("#filterAgent").value = "";
+      $("#filterCompany").value = "";
+      $("#filterStatus").value = "";
+      $("#filterFrom").value = "";
+      $("#filterTo").value = "";
       applyFilters();
     });
   }
@@ -700,15 +691,13 @@
   async function loadData() {
     const loading = $("#loading");
     if (loading) loading.classList.remove("hidden");
-
     try {
-      const data = await fetchSheetData();
-      rawData = applyCompanyFilter(data);
-      populateAgentFilter(rawData);
+      rawData = await fetchSheetData();
+      populateFilters(rawData);
       applyFilters();
       const lu = $("#lastUpdated");
       if (lu) lu.textContent = "Last updated: " + new Date().toLocaleString();
-      showToast("Loaded " + rawData.length + " records for " + currentUser.company);
+      showToast("Loaded " + rawData.length + " records");
     } catch (err) {
       console.error(err);
       const tbody = $("#tableBody");
@@ -720,22 +709,17 @@
           '<i class="ti ti-alert-triangle" style="color:var(--warning)"></i>' +
           '<div style="margin-top:0.5rem;max-width:420px;margin-left:auto;margin-right:auto;">' +
           "<strong>Unable to load sheet data</strong><br><br>" +
-          "Make sure the Google Sheet is shared as<br>" +
-          "<em>“Anyone with the link → Viewer”</em><br><br>" +
+          "Share the sheet as <em>Anyone with the link → Viewer</em><br><br>" +
           '<small style="color:var(--text-dim)">' + escapeHtml(err.message) + "</small></div>";
       }
       updateMetrics([]);
-      showToast("Failed to load data – check sheet permissions", 4000);
+      showToast("Failed to load data", 4000);
     } finally {
       if (loading) loading.classList.add("hidden");
     }
   }
 
-  // Boot
   currentUser = loadSession();
-  if (currentUser) {
-    showDashboard();
-  } else {
-    buildLoginUI();
-  }
+  if (currentUser) showDashboard();
+  else buildLoginUI();
 })();
