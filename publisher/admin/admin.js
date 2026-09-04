@@ -259,6 +259,27 @@
     }
   }
 
+  async function savePayout(row, payoutValue) {
+    try {
+      await fetch(APPS_SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({
+          submissionType: "UPDATE_PAYOUT",
+          sheetName: "Auto",
+          timestamp: row.timestamp,
+          phone: row.phone,
+          payout: payoutValue
+        })
+      });
+      return true;
+    } catch (e) {
+      console.error(e);
+      return false;
+    }
+  }
+
   function mapRow(r, col, i) {
     const duration = parseNumber(r[col.duration]);
     const override = col.statusOverride != null ? (r[col.statusOverride] || "") : "";
@@ -485,7 +506,12 @@
         '<td><span class="badge">' + (escapeHtml(r.company) || "—") + "</span></td>" +
         "<td>" + formatDuration(r.duration) + "</td>" +
         "<td>" + statusSelectHtml(r) + "</td>" +
-        '<td class="payout-cell">' + formatCurrency(payout) + "</td>" +
+        '<td><input type="number" class="payout-input" step="0.01" min="0" value="' +
+        Number(payout).toFixed(2) + '" data-id="' + r._id + '" ' +
+        (r.status === "nonbillable" || r.status === "rejected"
+          ? 'disabled title="Payout is $0 while Non-Billable or Rejected"'
+          : 'title="Edit payout (saves to sheet)"') +
+        " /></td>" +
         "</tr>"
       );
     }).join("");
@@ -517,6 +543,28 @@
         }
         // re-render payout cell for this row
         renderTable();
+      });
+    });
+
+    $$(".payout-input").forEach(function (inp) {
+      if (inp.disabled) return;
+      inp.addEventListener("change", async function (e) {
+        const id = e.target.dataset.id;
+        const row = filteredData.find(function (r) { return r._id === id; }) ||
+          rawData.find(function (r) { return r._id === id; });
+        if (!row) return;
+        if (row.status === "nonbillable" || row.status === "rejected") {
+          e.target.value = "0.00";
+          showToast("Payout locked at $0 for Non-Billable / Rejected");
+          return;
+        }
+        const val = parseNumber(e.target.value);
+        row.payout = val;
+        e.target.value = val.toFixed(2);
+        updateMetrics(filteredData);
+        showToast("Saving payout…");
+        const ok = await savePayout(row, val);
+        showToast(ok ? "Payout saved to sheet" : "Failed to save payout", ok ? 2800 : 4000);
       });
     });
   }
