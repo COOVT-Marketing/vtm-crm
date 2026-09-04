@@ -680,7 +680,6 @@
       '</tr></thead><tbody id="tableBody"></tbody></table>' +
       '<div id="emptyState" class="empty-state hidden"><i class="ti ti-database-off"></i><div>No calls match your filters.</div></div>' +
       "</div></div>" +
-      '<div class="status-bar"><div><span class="status-dot"></span> Live data · Sheet: Auto</div><div id="lastUpdated">Last updated: —</div></div>' +
       "</main>" +
       '<div class="toast" id="toast"></div>';
 
@@ -722,7 +721,7 @@
       applyFilters();
       const lu = $("#lastUpdated");
       if (lu) lu.textContent = "Last updated: " + new Date().toLocaleString();
-      showToast("Loaded " + rawData.length + " calls for " + currentUser.company);
+      showToast("Loaded " + rawData.length + " calls successfully ");
     } catch (err) {
       console.error(err);
       const tbody = $("#tableBody");
