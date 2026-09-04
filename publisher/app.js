@@ -702,7 +702,7 @@
       applyFilters();
       const lu = $("#lastUpdated");
       if (lu) lu.textContent = "Last updated: " + new Date().toLocaleString();
-      showToast("Loaded " + rawData.length + " records for " + currentUser.company);
+      showToast("Loaded " + rawData.length + " records successfully");
     } catch (err) {
       console.error(err);
       const tbody = $("#tableBody");
