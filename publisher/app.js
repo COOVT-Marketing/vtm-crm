@@ -126,7 +126,7 @@
       timeZone: "America/New_York",
       month: "short", day: "numeric", year: "numeric",
       hour: "2-digit", minute: "2-digit", hour12: true
-    }) + " ET";
+    });
   }
 
   function formatDuration(seconds) {
@@ -472,17 +472,12 @@
 
     tbody.innerHTML = filteredData.map(function (r) {
       const payout = getEffectivePayout(r);
-      const name = [r.firstName, r.lastName].filter(Boolean).join(" ") || "—";
-      const isNonBillable = r.status === "nonbillable";
+      const isNonBillable = r.status === "nonbillable" || r.status === "rejected";
       return (
         '<tr data-id="' + r._id + '" style="' + (isNonBillable ? "opacity:0.75;" : "") + '">' +
         "<td>" + formatDate(r.timestamp) + "</td>" +
-        "<td>" + (escapeHtml(r.agent) || "—") + "</td>" +
-        "<td>" + escapeHtml(name) + "</td>" +
         "<td>" + (escapeHtml(r.phone) || "—") + "</td>" +
-        "<td>" + (escapeHtml(r.age) || "—") + "</td>" +
         "<td>" + (escapeHtml(r.state) || "—") + "</td>" +
-        '<td><span class="badge">' + (escapeHtml(r.company) || "—") + "</span></td>" +
         "<td>" + formatDuration(r.duration) + "</td>" +
         "<td>" + billableBadge(r.status) + "</td>" +
         '<td class="payout-cell">' + formatCurrency(payout) + "</td>" +
@@ -497,17 +492,18 @@
       return;
     }
     const headers = [
-      "Timestamp", "Agent", "First Name", "Last Name", "Phone", "Age", "State",
-      "Company", "Duration (sec)", "Billable Status", "Payout"
+      "Timestamp", "Phone", "State", "Duration (sec)", "Status", "Payout"
     ];
     const lines = [headers.join(",")];
     filteredData.forEach(function (r) {
       const statusLabel =
         r.status === "billable" ? "Billable" :
-        r.status === "nonbillable" ? "Non-Billable" : "Unknown";
+        r.status === "nonbillable" ? "Non-Billable" :
+        r.status === "rejected" ? "Rejected" :
+        r.status === "pending" ? "Pending" : "Unknown";
       const row = [
-        r.timestamp, r.agent, r.firstName, r.lastName, r.phone, r.age, r.state,
-        r.company, r.duration || "", statusLabel,
+        formatDate(r.timestamp), r.phone, r.state,
+        r.duration || "", statusLabel,
         getEffectivePayout(r).toFixed(2)
       ].map(function (v) {
         return '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
@@ -661,8 +657,7 @@
       '<div class="table-card">' +
       '<div class="table-header"><h2>Sales Records — ' + escapeHtml(companyName) + '</h2><span class="table-count" id="tableCount">0 records</span></div>' +
       '<div class="table-wrap"><table><thead><tr>' +
-      "<th>Timestamp</th><th>Agent</th><th>Name</th><th>Phone</th><th>Age</th><th>State</th>" +
-      "<th>Company</th><th>Duration</th><th>Status</th><th>Payout ($)</th>" +
+      "<th>Timestamp</th><th>Phone</th><th>State</th><th>Duration</th><th>Status</th><th>Payout ($)</th>" +
       '</tr></thead><tbody id="tableBody"></tbody></table>' +
       '<div id="emptyState" class="empty-state hidden"><i class="ti ti-database-off"></i><div>No records match your filters.</div></div>' +
       "</div></div>" +
