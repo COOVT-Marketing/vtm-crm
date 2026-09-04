@@ -120,13 +120,32 @@
         const y = +parts[1], mo = +parts[2] - 1, day = +parts[3];
         const h = +parts[4], mi = +parts[5], s = +(parts[6] || 0);
         d = new Date(Date.UTC(y, mo, day, h - 5, mi, s)); // PKT = UTC+5
+      } else {
+        // try DD/MM/YYYY HH:MM:SS
+        const parts2 = String(str).match(/(\d{1,2})[\/](\d{1,2})[\/](\d{4})[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?/);
+        if (parts2) {
+          const day = +parts2[1], mo = +parts2[2] - 1, y = +parts2[3];
+          const h = +parts2[4], mi = +parts2[5], s = +(parts2[6] || 0);
+          d = new Date(Date.UTC(y, mo, day, h - 5, mi, s));
+        }
       }
     }
-    return d.toLocaleString("en-US", {
+    // Display as YYYY-MM-DD HH:MM:SS in US Eastern
+    const parts = new Intl.DateTimeFormat("en-CA", {
       timeZone: "America/New_York",
-      month: "short", day: "numeric", year: "numeric",
-      hour: "2-digit", minute: "2-digit", hour12: true
-    });
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false
+    }).formatToParts(d);
+    const get = function (type) {
+      const x = parts.find(function (p) { return p.type === type; });
+      return x ? x.value : "00";
+    };
+    return get("year") + "-" + get("month") + "-" + get("day") + " " + get("hour") + ":" + get("minute") + ":" + get("second");
   }
 
   function formatDuration(seconds) {
@@ -460,7 +479,7 @@
     if (!tbody) return;
 
     if (countEl) {
-      countEl.textContent = filteredData.length + " record" + (filteredData.length !== 1 ? "s" : "");
+      countEl.textContent = filteredData.length + " call" + (filteredData.length !== 1 ? "s" : "");
     }
 
     if (!filteredData.length) {
@@ -502,7 +521,7 @@
         r.status === "rejected" ? "Rejected" :
         r.status === "pending" ? "Pending" : "Unknown";
       const row = [
-        formatDate(r.timestamp), r.phone, r.state,
+        r.timestamp, r.phone, r.state,
         r.duration || "", statusLabel,
         getEffectivePayout(r).toFixed(2)
       ].map(function (v) {
@@ -635,9 +654,9 @@
       "</div></div></header>" +
       '<main class="container">' +
       '<div class="metrics">' +
-      '<div class="metric-card"><div class="metric-label"><i class="ti ti-chart-bar"></i> Total Sales</div><div class="metric-value" id="mTotalSales">—</div><div class="metric-sub">Billable · Rejected</div></div>' +
-      '<div class="metric-card"><div class="metric-label"><i class="ti ti-currency-dollar"></i> Total Payout</div><div class="metric-value" id="mTotalPayout">—</div><div class="metric-sub">Billable sales only</div></div>' +
-      '<div class="metric-card"><div class="metric-label"><i class="ti ti-calculator"></i> Avg Payout</div><div class="metric-value" id="mAvgPayout">—</div><div class="metric-sub">Per billable sale</div></div>' +
+      '<div class="metric-card"><div class="metric-label"><i class="ti ti-chart-bar"></i> Total Calls</div><div class="metric-value" id="mTotalSales">—</div><div class="metric-sub">Billable · Rejected</div></div>' +
+      '<div class="metric-card"><div class="metric-label"><i class="ti ti-currency-dollar"></i> Total Payout</div><div class="metric-value" id="mTotalPayout">—</div><div class="metric-sub">Billable calls only</div></div>' +
+      '<div class="metric-card"><div class="metric-label"><i class="ti ti-calculator"></i> Avg Payout</div><div class="metric-value" id="mAvgPayout">—</div><div class="metric-sub">Per billable call</div></div>' +
       '<div class="metric-card"><div class="metric-label"><i class="ti ti-clock"></i> Avg Duration</div><div class="metric-value" id="mAvgDuration">—</div><div class="metric-sub">All calls</div></div>' +
       "</div>" +
       '<div class="filters">' +
@@ -655,12 +674,13 @@
       '<button class="btn" id="btnClearFilters"><i class="ti ti-x"></i> Clear</button>' +
       "</div>" +
       '<div class="table-card">' +
-      '<div class="table-header"><h2>Sales Records — ' + escapeHtml(companyName) + '</h2><span class="table-count" id="tableCount">0 records</span></div>' +
+      '<div class="table-header"><h2>Call Records — ' + escapeHtml(companyName) + '</h2><span class="table-count" id="tableCount">0 records</span></div>' +
       '<div class="table-wrap"><table><thead><tr>' +
       "<th>Timestamp</th><th>Phone</th><th>State</th><th>Duration</th><th>Status</th><th>Payout ($)</th>" +
       '</tr></thead><tbody id="tableBody"></tbody></table>' +
-      '<div id="emptyState" class="empty-state hidden"><i class="ti ti-database-off"></i><div>No records match your filters.</div></div>' +
+      '<div id="emptyState" class="empty-state hidden"><i class="ti ti-database-off"></i><div>No calls match your filters.</div></div>' +
       "</div></div>" +
+      '<div class="status-bar"><div><span class="status-dot"></span> Live data · Sheet: Auto</div><div id="lastUpdated">Last updated: —</div></div>' +
       "</main>" +
       '<div class="toast" id="toast"></div>';
 
@@ -702,7 +722,7 @@
       applyFilters();
       const lu = $("#lastUpdated");
       if (lu) lu.textContent = "Last updated: " + new Date().toLocaleString();
-      showToast("Loaded " + rawData.length + " records successfully");
+      showToast("Loaded " + rawData.length + " calls for " + currentUser.company);
     } catch (err) {
       console.error(err);
       const tbody = $("#tableBody");
@@ -713,7 +733,7 @@
         empty.innerHTML =
           '<i class="ti ti-alert-triangle" style="color:var(--warning)"></i>' +
           '<div style="margin-top:0.5rem;max-width:420px;margin-left:auto;margin-right:auto;">' +
-          "<strong>Unable to load sheet data</strong><br><br>" +
+          "<strong>Unable to load call data</strong><br><br>" +
           "Make sure the Google Sheet is shared as<br>" +
           "<em>“Anyone with the link → Viewer”</em><br><br>" +
           '<small style="color:var(--text-dim)">' + escapeHtml(err.message) + "</small></div>";
