@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VTM Results Approval Portal</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card: #111827;
+      --border: #374151;
+      --teal: #1a9e75;
+      --txt: #f9fafb;
+      --txt2: #9ca3af;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--txt);
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+    .container { max-width: 1200px; margin: 0 auto; }
+    .login-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2.5rem;
+      max-width: 400px;
+      margin: 12vh auto;
+      text-align: center;
+    }
+    .login-box h1 { font-size: 22px; margin-bottom: 6px; }
+    .login-box p { color: var(--txt2); margin-bottom: 1.5rem; font-size: 14px; }
+    input {
+      width: 100%;
+      padding: 12px 14px;
+      margin-bottom: 12px;
+      background: #1f2937;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: white;
+      font-size: 14px;
+    }
+    button.primary {
+      width: 100%;
+      padding: 12px;
+      background: var(--teal);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 15px;
+    }
+    button.primary:hover { background: #147d5c; }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+    .header h1 { font-size: 22px; }
+    .logout {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--txt2);
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--card);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    th, td {
+      padding: 12px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+    th {
+      background: #0f1623;
+      color: var(--txt2);
+      font-weight: 500;
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.05em;
+    }
+    .status-pending { color: #fbbf24; font-weight: 600; }
+    .status-approved { color: #4ade80; font-weight: 600; }
+    .status-rejected { color: #f87171; font-weight: 600; }
+    .btn-approve {
+      background: var(--teal);
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      margin-right: 6px;
+    }
+    .btn-reject {
+      background: #ef4444;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .btn-approve:disabled, .btn-reject:disabled { opacity: 0.5; cursor: not-allowed; }
+    .empty { text-align: center; padding: 3rem; color: var(--txt2); }
+    .filters { margin-bottom: 1rem; display: flex; gap: 10px; }
+    .filters select {
+      background: #1f2937;
+      border: 1px solid var(--border);
+      color: white;
+      padding: 8px 12px;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Login -->
+    <div id="loginScreen" class="login-box">
+      <h1>VTM Results Portal</h1>
+      <p>Manager Access Only</p>
+      <input type="text" id="username" placeholder="Username" value="vtmadmin">
+      <input type="password" id="password" placeholder="Password">
+      <button class="primary" onclick="login()">Login</button>
+      <p id="loginError" style="color:#f87171;margin-top:12px;font-size:13px;display:none;"></p>
+    </div>
+
+    <!-- Portal -->
+    <div id="portal" style="display:none;">
+      <div class="header">
+        <h1>Results – Lead Review</h1>
+        <button class="logout" onclick="logout()">Logout</button>
+      </div>
+
+      <div class="filters">
+        <select id="statusFilter" onchange="loadLeads()">
+          <option value="all">All Statuses</option>
+          <option value="Pending">Pending</option>
+          <option value="Approved">Approved</option>
+          <option value="Rejected">Rejected</option>
+        </select>
+        <button class="primary" style="width:auto;padding:8px 16px;" onclick="loadLeads()">Refresh</button>
+      </div>
+
+      <div id="leadsTable"></div>
+    </div>
+  </div>
+
+  <script>
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwZo2WecH8AbJ2rx6-YM7nVzO6D7l7Qn8tMmYQdVMopnIyuCy3SkfZibVS5ibHFtces-w/exec';
+    let currentUser = null;
+    let allLeads = [];
+
+    function login() {
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const errorEl = document.getElementById('loginError');
+
+      if (username === 'vtmadmin' && password === 'Vtm@Admin2026') {
+        currentUser = username;
+        localStorage.setItem('vtm_approver', username);
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('portal').style.display = 'block';
+        loadLeads();
+      } else {
+        errorEl.style.display = 'block';
+        errorEl.textContent = 'Invalid credentials';
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('vtm_approver');
+      location.reload();
+    }
+
+    async function loadLeads() {
+      const container = document.getElementById('leadsTable');
+      container.innerHTML = '<p style="text-align:center;color:#9ca3af;padding:2rem;">Loading...</p>';
+
+      try {
+        const res = await fetch(APPS_SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'getResultsLeads' })
+        });
+        const data = await res.json();
+        allLeads = data.leads || [];
+
+        const filter = document.getElementById('statusFilter').value;
+        let leads = allLeads;
+        if (filter !== 'all') {
+          leads = allLeads.filter(l => String(l.Status || '').toLowerCase() === filter.toLowerCase());
+        }
+
+        if (leads.length === 0) {
+          container.innerHTML = '<div class="empty">No leads found.</div>';
+          return;
+        }
+
+        let html = `
+          <table>
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Phone</th>
+                <th>Name</th>
+                <th>State</th>
+                <th>Reason</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+        `;
+
+        leads.forEach(lead => {
+          const name = `${lead['First Name'] || ''} ${lead['Last Name'] || ''}`.trim() || '-';
+          const status = lead.Status || 'Pending';
+          const statusClass = status.toLowerCase() === 'approved' ? 'status-approved' :
+                              status.toLowerCase() === 'rejected' ? 'status-rejected' : 'status-pending';
+
+          html += `
+            <tr>
+              <td>${lead.Timestamp ? new Date(lead.Timestamp).toLocaleString() : '-'}</td>
+              <td>${lead.Phone || '-'}</td>
+              <td>${name}</td>
+              <td>${lead.State || '-'}</td>
+              <td>${lead.Reason || '-'}</td>
+              <td class="${statusClass}">${status}</td>
+              <td>
+                <button class="btn-approve" onclick="updateStatus(${lead.rowIndex}, 'Approved', this)">Approve</button>
+                <button class="btn-reject" onclick="updateStatus(${lead.rowIndex}, 'Rejected', this)">Reject</button>
+              </td>
+            </tr>
+          `;
+        });
+
+        html += '</tbody></table>';
+        container.innerHTML = html;
+
+      } catch (err) {
+        container.innerHTML = '<div class="empty">Failed to load leads.</div>';
+      }
+    }
+
+    async function updateStatus(rowIndex, newStatus, btn) {
+      btn.disabled = true;
+      const originalText = btn.textContent;
+      btn.textContent = '...';
+
+      try {
+        const res = await fetch(APPS_SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            action: 'updateResultStatus',
+            rowIndex: rowIndex,
+            status: newStatus,
+            updatedBy: currentUser || 'Manager'
+          })
+        });
+        const data = await res.json();
+
+        if (data.status === 'success') {
+          loadLeads(); // refresh
+        } else {
+          alert('Update failed');
+          btn.disabled = false;
+          btn.textContent = originalText;
+        }
+      } catch (err) {
+        alert('Network error');
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
+    }
+
+    // Auto login
+    if (localStorage.getItem('vtm_approver')) {
+      currentUser = localStorage.getItem('vtm_approver');
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('portal').style.display = 'block';
+      loadLeads();
+    }
+  </script>
+</body>
+</html>
