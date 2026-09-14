@@ -1,384 +1,488 @@
 (function(){
-const _0x2a1b=["https://script.google.com/macros/s/AKfycbw7CBJksXRQFzwTvwCWUKfp-S_1BUUNfo4c4y-22emeX81jRa0PRHkiiJ8lFwRQpMAqVA/exec","vtm_logged_in","true","root","hidden","getCalls","getMonthly","login","password","refresh","action","success","data","message","Network error","Sign in...","Sign In","Incorrect password","Overview","Analytics","Total Calls","Total Payout","Avg Duration","Avg Payout","Lowest Bid","Highest Bid","See more","See less","Search","From","To","Status","All","Billable","Non-billable","Clear","Export CSV","Generate Invoice","Call Details","No calls match the current filters","State Summary","Calls, total payout and average bid per state","Monthly Summary","Unknown","No data yet","No data to export","dts","ani","state","call_duration_sec","payout","status","vtm-calls-",".csv","text/csv;charset=utf-8;","Error: ","Failed: ","Refreshing...","Refresh","open","rotated","record","s","Billable","Non-billable","createElement","div","className","id","textContent","innerHTML","appendChild","addEventListener","click","getElementById","querySelector","classList","add","remove","toggle","style","display","none","block","flex","min-h-screen","items-center","justify-center","p-5","login-card","fade-in","text-center","mb-8","mx-auto","h-12","w-auto","mb-5","opacity-95","text-xl","font-bold","tracking-tight","text-sm","mt-1.5","w-full","px-4","py-3.5","mb-4","btn","btn-primary","py-3.5","input-dark","type","password","placeholder","Enter password","onkeypress","value","disabled","localStorage","getItem","setItem","removeItem","setInterval","clearInterval","URL","searchParams","set","forEach","fetch","ok","json","Promise","all","filter","map","sort","length","toFixed","padStart","toLowerCase","trim","includes","match","getFullYear","getMonth","getDate","getHours","getMinutes","getSeconds","getTime","isNaN","Number","String","Math","round","floor","random","abs","toISOString","slice","replace","join","concat","createObjectURL","revokeObjectURL","download","href","Blob","FEFF","body","overflow","openInvoiceModal","closeInvoiceModal","printInvoice","invoiceModal","invoiceTableBody","invNumber","invDate","invDueDate","invPeriod","invSubtotal","invAdjustments","invTotal","billToName","billToAddress","No calls selected for invoicing.","INV-","$0.00","+","-","$","s","mono","toUpperCase","call_duration_sec","payout","dts","ani","state"];
+const _0x2a1b = [
+  "https://script.google.com/macros/s/AKfycbw7CBJksXRQFzwTvwCWUKfp-S_1BUUNfo4c4y-22emeX81jRa0PRHkiiJ8lFwRQpMAqVA/exec",
+  "vtm_logged_in",
+  "true",
+  "hidden",
+  "getCalls",
+  "getMonthly",
+  "login",
+  "password",
+  "refresh",
+  "action",
+  "success",
+  "data",
+  "message",
+  "Network error",
+  "Sign in...",
+  "Sign In",
+  "Incorrect password",
+  "0",
+  "$0.00",
+  " sec",
+  "all",
+  "billable",
+  "nonbillable",
+  "record",
+  "s",
+  "Billable",
+  "Non-billable",
+  "Unknown",
+  "No data yet",
+  "No data to export",
+  "dts",
+  "ani",
+  "state",
+  "call_duration_sec",
+  "payout",
+  "status",
+  "vtm-calls-",
+  ".csv",
+  "text/csv;charset=utf-8;",
+  "Error: ",
+  "Failed: ",
+  "Refreshing...",
+  "Refresh",
+  "See more",
+  "See less",
+  "open",
+  "rotated"
+];
 
-const _0x1c=function(i){return _0x2a1b[i];};
+const _0x = i => _0x2a1b[i];
 
-let _0x5c3d=[],_0x9e2f=[],_0x7b1a=null,_0xextraOpen=false;
-const _0x4e8c=_0x1c(0);
+let _0x5c3d = [], _0x9e2f = [], _0x7b1a = null, _0xextraOpen = false;
+const _0x4e8c = _0x(0);
 
-function _0x6d3f(){
-  if(localStorage[_0x1c(0x5e)](_0x1c(1))===_0x1c(2)){
-    document[_0x1c(0x4a)]("a0")[_0x1c(0x4c)][_0x1c(0x4d)](_0x1c(4));
-    document[_0x1c(0x4a)]("a4")[_0x1c(0x4c)][_0x1c(0x4e)](_0x1c(4));
+function _0x6d3f() {
+  if (localStorage.getItem(_0x(1)) === _0x(2)) {
+    document.getElementById("a0").classList.add(_0x(3));
+    document.getElementById("a4").classList.remove(_0x(3));
     _0x0c4e();
-    _0x7b1a=setInterval(_0x0c4e,6e4);
+    _0x7b1a = setInterval(_0x0c4e, 60000);
   }
 }
 
-function _0x1a7c(v){
-  if(v==null||v==="")return"—";
-  const s=String(v)[_0x1c(0x6a)]();
-  if(!s)return"—";
-  if(/^\d{4}-\d{2}-\d{2}/.test(s))return s;
-  const d=new Date(s);
-  if(isNaN(d[_0x1c(0x74)]()))return s;
-  const p=n=>String(n)[_0x1c(0x68)](2,"0");
-  return `${d[_0x1c(0x6e)]()}-${p(d[_0x1c(0x6f)]()+1)}-${p(d[_0x1c(0x70)]())} ${p(d[_0x1c(0x71)]())}:${p(d[_0x1c(0x72)]())}:${p(d[_0x1c(0x73)]())}`;
+function _0x1a7c(v) {
+  if (v == null || v === "") return "—";
+  const s = String(v).trim();
+  if (!s) return "—";
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s;
+  const d = new Date(s);
+  if (isNaN(d.getTime())) return s;
+  const p = n => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
 }
 
-async function _0x3b9a(a,p={}){
-  const u=new URL(_0x4e8c);
-  u[_0x1c(0x62)][_0x1c(0x63)](_0x1c(10),a);
-  Object.keys(p)[_0x1c(0x64)](k=>u[_0x1c(0x62)][_0x1c(0x63)](k,p[k]));
-  const r=await fetch(u.toString());
-  if(!r[_0x1c(0x66)])throw new Error(_0x1c(14));
-  return await r[_0x1c(0x67)]();
+async function _0x3b9a(a, p = {}) {
+  const u = new URL(_0x4e8c);
+  u.searchParams.set(_0x(9), a);
+  Object.keys(p).forEach(k => u.searchParams.set(k, p[k]));
+  const r = await fetch(u.toString());
+  if (!r.ok) throw new Error(_0x(13));
+  return await r.json();
 }
 
-async function _0x4f2a(){
-  const pwd=document[_0x1c(0x4a)]("a1")[_0x1c(0x5c)];
-  const btn=document[_0x1c(0x4a)]("a2");
-  btn[_0x1c(0x5d)]=true;
-  btn[_0x1c(0x45)]=_0x1c(15);
-  try{
-    const res=await _0x3b9a(_0x1c(7),{[_0x1c(8)]:pwd});
-    if(res[_0x1c(11)]){
-      localStorage[_0x1c(0x5f)](_0x1c(1),_0x1c(2));
-      document[_0x1c(0x4a)]("a0")[_0x1c(0x4c)][_0x1c(0x4d)](_0x1c(4));
-      document[_0x1c(0x4a)]("a4")[_0x1c(0x4c)][_0x1c(0x4e)](_0x1c(4));
+async function _0x4f2a() {
+  const pwd = document.getElementById("a1").value;
+  const btn = document.getElementById("a2");
+  btn.disabled = true;
+  btn.textContent = _0x(14);
+  try {
+    const res = await _0x3b9a(_0x(6), { [_0x(7)]: pwd });
+    if (res[_0x(10)]) {
+      localStorage.setItem(_0x(1), _0x(2));
+      document.getElementById("a0").classList.add(_0x(3));
+      document.getElementById("a4").classList.remove(_0x(3));
       _0x0c4e();
-      _0x7b1a=setInterval(_0x0c4e,6e4);
-    }else{
-      document[_0x1c(0x4a)]("a3")[_0x1c(0x4c)][_0x1c(0x4e)](_0x1c(4));
+      _0x7b1a = setInterval(_0x0c4e, 60000);
+    } else {
+      document.getElementById("a3").classList.remove(_0x(3));
     }
-  }catch(e){
-    alert(_0x1c(17)+e.message);
-  }finally{
-    btn[_0x1c(0x5d)]=false;
-    btn[_0x1c(0x45)]=_0x1c(16);
+  } catch (e) {
+    alert(_0x(16) + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = _0x(15);
   }
 }
 
-function _0x9a2f(){
-  if(_0x7b1a)clearInterval(_0x7b1a);
-  localStorage[_0x1c(0x60)](_0x1c(1));
-  document[_0x1c(0x4a)]("a4")[_0x1c(0x4c)][_0x1c(0x4d)](_0x1c(4));
-  document[_0x1c(0x4a)]("a0")[_0x1c(0x4c)][_0x1c(0x4e)](_0x1c(4));
-  document[_0x1c(0x4a)]("a1")[_0x1c(0x5c)]="";
-  document[_0x1c(0x4a)]("a3")[_0x1c(0x4c)][_0x1c(0x4d)](_0x1c(4));
+function _0x9a2f() {
+  if (_0x7b1a) clearInterval(_0x7b1a);
+  localStorage.removeItem(_0x(1));
+  document.getElementById("a4").classList.add(_0x(3));
+  document.getElementById("a0").classList.remove(_0x(3));
+  document.getElementById("a1").value = "";
+  document.getElementById("a3").classList.add(_0x(3));
 }
 
-async function _0x0c4e(){
-  try{
-    const[c,m]=await Promise[_0x1c(0x69)]([_0x3b9a(_0x1c(5)),_0x3b9a(_0x1c(6))]);
-    _0x5c3d=c[_0x1c(12)]||[];
-    _0x9e2f=m[_0x1c(12)]||[];
+async function _0x0c4e() {
+  try {
+    const [c, m] = await Promise.all([_0x3b9a(_0x(4)), _0x3b9a(_0x(5))]);
+    _0x5c3d = c[_0x(11)] || [];
+    _0x9e2f = m[_0x(11)] || [];
     _0x1b9e();
     _0x5f2d(_0x9e2f);
-    if(!document[_0x1c(0x4a)]("am")[_0x1c(0x4c)][_0x1c(0x4f)](_0x1c(4))){
+    if (!document.getElementById("am").classList.contains(_0x(3))) {
       _0x8e1a();
       _0x4c7b();
     }
-  }catch(e){console.error(e);}
+  } catch (e) {
+    console.error(e);
+  }
 }
 
-function _0x0e5f(){
-  const q=(document[_0x1c(0x4a)]("af")[_0x1c(0x5c)]||"")[_0x1c(0x6b)]()[_0x1c(0x6a)]();
-  const fr=document[_0x1c(0x4a)]("ag")[_0x1c(0x5c)];
-  const to=document[_0x1c(0x4a)]("ah")[_0x1c(0x5c)];
-  const st=document[_0x1c(0x4a)]("ai")[_0x1c(0x5c)];
-  return _0x5c3d[_0x1c(0x6a)](r=>{
-    if(q){
-      const h=`${r.ani||""} ${r.state||""} ${r.dts||""}`[_0x1c(0x6b)]();
-      if(!h[_0x1c(0x6c)](q))return false;
+function _0x0e5f() {
+  const q = (document.getElementById("af").value || "").toLowerCase().trim();
+  const fr = document.getElementById("ag").value;
+  const to = document.getElementById("ah").value;
+  const st = document.getElementById("ai").value;
+  return _0x5c3d.filter(r => {
+    if (q) {
+      const h = `${r.ani || ""} ${r.state || ""} ${r.dts || ""}`.toLowerCase();
+      if (!h.includes(q)) return false;
     }
-    if(fr||to){
-      let rd="";
-      if(r.dts){
-        const m=String(r.dts)[_0x1c(0x6d)](/(\d{4})-(\d{2})-(\d{2})/);
-        if(m)rd=m[0];
-        else{
-          const d=new Date(r.dts);
-          if(!isNaN(d[_0x1c(0x74)]())){
-            const p=n=>String(n)[_0x1c(0x68)](2,"0");
-            rd=`${d[_0x1c(0x6e)]()}-${p(d[_0x1c(0x6f)]()+1)}-${p(d[_0x1c(0x70)]())}`;
+    if (fr || to) {
+      let rd = "";
+      if (r.dts) {
+        const m = String(r.dts).match(/(\d{4})-(\d{2})-(\d{2})/);
+        if (m) rd = m[0];
+        else {
+          const d = new Date(r.dts);
+          if (!isNaN(d.getTime())) {
+            const p = n => String(n).padStart(2, "0");
+            rd = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
           }
         }
       }
-      if(fr&&rd<fr)return false;
-      if(to&&rd>to)return false;
+      if (fr && rd < fr) return false;
+      if (to && rd > to) return false;
     }
-    const po=Number(r.payout)||0;
-    if(st==="billable"&&po<=0)return false;
-    if(st==="nonbillable"&&po>0)return false;
+    const po = Number(r.payout) || 0;
+    if (st === _0x(21) && po <= 0) return false;
+    if (st === _0x(22) && po > 0) return false;
     return true;
   });
 }
 
-function _0x1b9e(){
-  const f=_0x0e5f();
+function _0x1b9e() {
+  const f = _0x0e5f();
   _0x6a2c(f);
   _0x9d4e(f);
 }
 
-function _0x7d4c(){
-  document[_0x1c(0x4a)]("af")[_0x1c(0x5c)]="";
-  document[_0x1c(0x4a)]("ag")[_0x1c(0x5c)]="";
-  document[_0x1c(0x4a)]("ah")[_0x1c(0x5c)]="";
-  document[_0x1c(0x4a)]("ai")[_0x1c(0x5c)]="all";
+function _0x7d4c() {
+  document.getElementById("af").value = "";
+  document.getElementById("ag").value = "";
+  document.getElementById("ah").value = "";
+  document.getElementById("ai").value = _0x(20);
   _0x1b9e();
 }
 
-function _0x9d4e(rows){
-  if(!rows||!rows[_0x1c(0x6e)]){
-    document[_0x1c(0x4a)]("a9")[_0x1c(0x45)]="0";
-    document[_0x1c(0x4a)]("aa")[_0x1c(0x45)]="$0.00";
-    document[_0x1c(0x4a)]("ab")[_0x1c(0x46)]="0 <span class=\"unit\">sec</span>";
-    document[_0x1c(0x4a)]("ac")[_0x1c(0x45)]="$0.00";
-    document[_0x1c(0x4a)]("ad")[_0x1c(0x45)]="$0.00";
-    document[_0x1c(0x4a)]("ae")[_0x1c(0x45)]="$0.00";
+function _0x9d4e(rows) {
+  if (!rows || !rows.length) {
+    document.getElementById("a9").textContent = _0x(17);
+    document.getElementById("aa").textContent = _0x(18);
+    document.getElementById("ab").innerHTML = _0x(17) + '<span class="unit">sec</span>';
+    document.getElementById("ac").textContent = _0x(18);
+    document.getElementById("ad").textContent = _0x(18);
+    document.getElementById("ae").textContent = _0x(18);
     return;
   }
-  let tp=0,td=0,lo=Infinity,hi=-Infinity;
-  rows[_0x1c(0x64)](c=>{
-    const p=Number(c.payout)||0;
-    tp+=p;
-    td+=Number(c.call_duration_sec)||0;
-    if(p>0){if(p<lo)lo=p;if(p>hi)hi=p;}
+  let tp = 0, td = 0, lo = Infinity, hi = -Infinity;
+  rows.forEach(c => {
+    const p = Number(c.payout) || 0;
+    tp += p;
+    td += Number(c.call_duration_sec) || 0;
+    if (p > 0) {
+      if (p < lo) lo = p;
+      if (p > hi) hi = p;
+    }
   });
-  document[_0x1c(0x4a)]("a9")[_0x1c(0x45)]=rows[_0x1c(0x6e)];
-  document[_0x1c(0x4a)]("aa")[_0x1c(0x45)]="$"+tp[_0x1c(0x67)](2);
-  document[_0x1c(0x4a)]("ab")[_0x1c(0x46)]=Math[_0x1c(0x77)](td/rows[_0x1c(0x6e)])+" <span class=\"unit\">sec</span>";
-  document[_0x1c(0x4a)]("ac")[_0x1c(0x45)]="$"+(tp/rows[_0x1c(0x6e)])[_0x1c(0x67)](2);
-  document[_0x1c(0x4a)]("ad")[_0x1c(0x45)]=lo===Infinity?"$0.00":"$"+lo[_0x1c(0x67)](2);
-  document[_0x1c(0x4a)]("ae")[_0x1c(0x45)]=hi===-Infinity?"$0.00":"$"+hi[_0x1c(0x67)](2);
+  document.getElementById("a9").textContent = rows.length;
+  document.getElementById("aa").textContent = "$" + tp.toFixed(2);
+  document.getElementById("ab").innerHTML = Math.round(td / rows.length) + '<span class="unit">sec</span>';
+  document.getElementById("ac").textContent = "$" + (tp / rows.length).toFixed(2);
+  document.getElementById("ad").textContent = lo === Infinity ? _0x(18) : "$" + lo.toFixed(2);
+  document.getElementById("ae").textContent = hi === -Infinity ? _0x(18) : "$" + hi.toFixed(2);
 }
 
-function _0x4c7b(){
-  let b=0,n=0;
-  _0x5c3d[_0x1c(0x64)](c=>{if(Number(c.payout)>0)b++;else n++;});
-  document[_0x1c(0x4a)]("an")[_0x1c(0x45)]=_0x5c3d[_0x1c(0x6e)];
-  document[_0x1c(0x4a)]("ao")[_0x1c(0x45)]=b;
-  document[_0x1c(0x4a)]("ap")[_0x1c(0x45)]=n;
+function _0x4c7b() {
+  let b = 0, n = 0;
+  _0x5c3d.forEach(c => {
+    if (Number(c.payout) > 0) b++;
+    else n++;
+  });
+  document.getElementById("an").textContent = _0x5c3d.length;
+  document.getElementById("ao").textContent = b;
+  document.getElementById("ap").textContent = n;
 }
 
-function _0x6a2c(rows){
-  const tb=document[_0x1c(0x4a)]("ak");
-  const nd=document[_0x1c(0x4a)]("al");
-  const rc=document[_0x1c(0x4a)]("aj");
-  tb[_0x1c(0x46)]="";
-  rc[_0x1c(0x45)]=rows[_0x1c(0x6e)]?`${rows[_0x1c(0x6e)]} record${rows[_0x1c(0x6e)]!==1?"s":""}`:"";
-  if(!rows||!rows[_0x1c(0x6e)]){nd[_0x1c(0x4c)][_0x1c(0x4e)](_0x1c(4));return;}
-  nd[_0x1c(0x4c)][_0x1c(0x4d)](_0x1c(4));
-  rows[_0x1c(0x64)](r=>{
-    const p=Number(r.payout)||0;
-    const st=p>0?`<span class="status-billable">Billable</span>`:`<span class="status-non">Non-billable</span>`;
-    const tr=document[_0x1c(0x41)]("tr");
-    tr[_0x1c(0x46)]=`<td style="color:var(--muted)">${_0x1a7c(r.dts)}</td><td class="font-mono">${r.ani||"—"}</td><td style="color:var(--muted)">${r.state||"—"}</td><td style="color:var(--muted)">${r.call_duration_sec||"—"}s</td><td class="font-medium"><span class="payout-hidden" style="color:var(--gold)">$${p[_0x1c(0x67)](2)}</span></td><td>${st}</td>`;
-    tb[_0x1c(0x47)](tr);
+function _0x6a2c(rows) {
+  const tb = document.getElementById("ak");
+  const nd = document.getElementById("al");
+  const rc = document.getElementById("aj");
+  tb.innerHTML = "";
+  rc.textContent = rows.length ? `${rows.length} ${_0x(23)}${rows.length !== 1 ? _0x(24) : ""}` : "";
+  if (!rows || !rows.length) {
+    nd.classList.remove(_0x(3));
+    return;
+  }
+  nd.classList.add(_0x(3));
+  rows.forEach(r => {
+    const p = Number(r.payout) || 0;
+    const st = p > 0
+      ? `<span class="status-billable">${_0x(25)}</span>`
+      : `<span class="status-non">${_0x(26)}</span>`;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td style="color:var(--muted)">${_0x1a7c(r.dts)}</td>
+      <td class="font-mono">${r.ani || "—"}</td>
+      <td style="color:var(--muted)">${r.state || "—"}</td>
+      <td style="color:var(--muted)">${r.call_duration_sec || "—"}s</td>
+      <td class="font-medium"><span class="payout-hidden" style="color:var(--gold)">$${p.toFixed(2)}</span></td>
+      <td>${st}</td>`;
+    tb.appendChild(tr);
   });
 }
 
-function _0x5f2d(rows){
-  const tb=document[_0x1c(0x4a)]("ar");
-  tb[_0x1c(0x46)]="";
-  (rows||[])[_0x1c(0x64)](r=>{
-    let m=(r.month||"")[_0x1c(0x75)]()[_0x1c(0x6a)]();
-    if(m[_0x1c(0x6e)]>7){
-      const mt=m[_0x1c(0x6d)](/(\d{4})-(\d{2})/);
-      if(mt)m=mt[0];
-      else{
-        const d=new Date(m);
-        if(!isNaN(d[_0x1c(0x74)]())){
-          const p=n=>String(n)[_0x1c(0x68)](2,"0");
-          m=`${d[_0x1c(0x6e)]()}-${p(d[_0x1c(0x6f)]()+1)}`;
+function _0x5f2d(rows) {
+  const tb = document.getElementById("ar");
+  tb.innerHTML = "";
+  (rows || []).forEach(r => {
+    let m = (r.month || "").toString().trim();
+    if (m.length > 7) {
+      const mt = m.match(/(\d{4})-(\d{2})/);
+      if (mt) m = mt[0];
+      else {
+        const d = new Date(m);
+        if (!isNaN(d.getTime())) {
+          const p = n => String(n).padStart(2, "0");
+          m = `${d.getFullYear()}-${p(d.getMonth() + 1)}`;
         }
       }
     }
-    const tr=document[_0x1c(0x41)]("tr");
-    tr[_0x1c(0x46)]=`<td>${m||"—"}</td><td class="font-medium"><span class="payout-hidden" style="color:var(--gold)">$${Number(r.total_payout||0)[_0x1c(0x67)](2)}</span></td><td style="color:var(--muted)">${r.total_calls||"—"}</td>`;
-    tb[_0x1c(0x47)](tr);
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${m || "—"}</td>
+      <td class="font-medium"><span class="payout-hidden" style="color:var(--gold)">$${Number(r.total_payout || 0).toFixed(2)}</span></td>
+      <td style="color:var(--muted)">${r.total_calls || "—"}</td>`;
+    tb.appendChild(tr);
   });
 }
 
-function _0x2d8e(){
-  const s={};
-  _0x5c3d[_0x1c(0x64)](c=>{
-    const st=((c.state||"Unknown")[_0x1c(0x75)]()[_0x1c(0x6a)]()[_0x1c(0x7e)]())||"Unknown";
-    if(!s[st])s[st]={c:0,t:0};
+function _0x2d8e() {
+  const s = {};
+  _0x5c3d.forEach(c => {
+    const st = ((c.state || _0x(27)).toString().trim().toUpperCase()) || _0x(27);
+    if (!s[st]) s[st] = { c: 0, t: 0 };
     s[st].c++;
-    s[st].t+=Number(c.payout)||0;
+    s[st].t += Number(c.payout) || 0;
   });
-  return Object.keys(s)[_0x1c(0x6b)](k=>({state:k,calls:s[k].c,totalPayout:s[k].t,avgBid:s[k].c?s[k].t/s[k].c:0}))[_0x1c(0x6c)]((a,b)=>b.avgBid-a.avgBid);
+  return Object.keys(s)
+    .map(k => ({ state: k, calls: s[k].c, totalPayout: s[k].t, avgBid: s[k].c ? s[k].t / s[k].c : 0 }))
+    .sort((a, b) => b.avgBid - a.avgBid);
 }
 
-function _0x8e1a(){
-  const st=_0x2d8e();
-  const tb=document[_0x1c(0x4a)]("aq");
-  tb[_0x1c(0x46)]="";
-  if(!st[_0x1c(0x6e)]){
-    tb[_0x1c(0x46)]=`<tr><td colspan="4" class="text-center py-8" style="color:var(--muted)">No data yet</td></tr>`;
+function _0x8e1a() {
+  const st = _0x2d8e();
+  const tb = document.getElementById("aq");
+  tb.innerHTML = "";
+  if (!st.length) {
+    tb.innerHTML = `<tr><td colspan="4" class="text-center py-8" style="color:var(--muted)">${_0x(28)}</td></tr>`;
     return;
   }
-  st[_0x1c(0x64)](s=>{
-    const tr=document[_0x1c(0x41)]("tr");
-    tr[_0x1c(0x46)]=`<td class="font-medium">${s.state}</td><td style="color:var(--muted)">${s.calls}</td><td><span class="payout-hidden" style="color:var(--gold)">$${s.totalPayout[_0x1c(0x67)](2)}</span></td><td class="font-medium"><span class="payout-hidden" style="color:var(--gold)">$${s.avgBid[_0x1c(0x67)](2)}</span></td>`;
-    tb[_0x1c(0x47)](tr);
+  st.forEach(s => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td class="font-medium">${s.state}</td>
+      <td style="color:var(--muted)">${s.calls}</td>
+      <td><span class="payout-hidden" style="color:var(--gold)">$${s.totalPayout.toFixed(2)}</span></td>
+      <td class="font-medium"><span class="payout-hidden" style="color:var(--gold)">$${s.avgBid.toFixed(2)}</span></td>`;
+    tb.appendChild(tr);
   });
 }
 
-function _0x8c1d(p){
-  document[_0x1c(0x4a)]("a8")[_0x1c(0x4c)][_0x1c(0x4f)](_0x1c(4),p!=="o");
-  document[_0x1c(0x4a)]("am")[_0x1c(0x4c)][_0x1c(0x4f)](_0x1c(4),p!=="a");
-  document[_0x1c(0x4a)]("a5")[_0x1c(0x4c)][_0x1c(0x4f)]("active",p==="o");
-  document[_0x1c(0x4a)]("a6")[_0x1c(0x4c)][_0x1c(0x4f)]("active",p==="a");
-  if(p==="a"){_0x8e1a();_0x4c7b();}
-}
-
-function _0xToggleExtra(){
-  _0xextraOpen=!_0xextraOpen;
-  const el=document[_0x1c(0x4a)]("aExtra");
-  const txt=document[_0x1c(0x4a)]("aToggleText");
-  const ch=document[_0x1c(0x4a)]("aChevron");
-  if(_0xextraOpen){
-    el[_0x1c(0x4c)][_0x1c(0x4d)]("open");
-    txt[_0x1c(0x45)]="See less";
-    ch[_0x1c(0x4c)][_0x1c(0x4d)]("rotated");
-  }else{
-    el[_0x1c(0x4c)][_0x1c(0x4e)]("open");
-    txt[_0x1c(0x45)]="See more";
-    ch[_0x1c(0x4c)][_0x1c(0x4e)]("rotated");
+function _0x8c1d(p) {
+  document.getElementById("a8").classList.toggle(_0x(3), p !== "o");
+  document.getElementById("am").classList.toggle(_0x(3), p !== "a");
+  document.getElementById("a5").classList.toggle("active", p === "o");
+  document.getElementById("a6").classList.toggle("active", p === "a");
+  if (p === "a") {
+    _0x8e1a();
+    _0x4c7b();
   }
 }
 
-async function _0x3e7b(){
-  const btn=document[_0x1c(0x4a)]("a7");
-  btn[_0x1c(0x5d)]=true;
-  btn[_0x1c(0x46)]=`<svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/></svg> Refreshing...`;
-  try{
-    const res=await _0x3b9a("refresh");
-    if(res[_0x1c(11)])await _0x0c4e();
-    else alert("Failed: "+res[_0x1c(13)]);
-  }catch(e){alert("Error: "+e.message);}
-  finally{
-    btn[_0x1c(0x5d)]=false;
-    btn[_0x1c(0x46)]=`<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> Refresh`;
+function _0xToggleExtra() {
+  _0xextraOpen = !_0xextraOpen;
+  const el = document.getElementById("aExtra");
+  const txt = document.getElementById("aToggleText");
+  const ch = document.getElementById("aChevron");
+  if (_0xextraOpen) {
+    el.classList.add(_0x(45));
+    txt.textContent = _0x(44);
+    ch.classList.add(_0x(46));
+  } else {
+    el.classList.remove(_0x(45));
+    txt.textContent = _0x(43);
+    ch.classList.remove(_0x(46));
   }
 }
 
-function _0x2f8a(){
-  const rows=_0x0e5f();
-  if(!rows[_0x1c(0x6e)]){alert("No data to export");return;}
-  const headers=["dts","ani","state","call_duration_sec","payout","status"];
-  const csvRows=rows[_0x1c(0x6b)](r=>{
-    const p=Number(r.payout)||0;
-    const st=p>0?"Billable":"Non-billable";
-    const exact=_0x1a7c(r.dts);
-    const dts=exact==="—"?"":"\t"+exact;
-    return[dts,r.ani||"",r.state||"",r.call_duration_sec||"",p[_0x1c(0x67)](2),st][_0x1c(0x6b)](v=>{
-      const s=String(v);
-      return s[_0x1c(0x6c)](",")||s[_0x1c(0x6c)]('"')||s[_0x1c(0x6c)]("\n")?`"${s[_0x1c(0x7c)](/"/g,'""')}"`:s;
-    })[_0x1c(0x7d)](",");
+async function _0x3e7b() {
+  const btn = document.getElementById("a7");
+  btn.disabled = true;
+  btn.innerHTML = `<svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/></svg> ${_0x(41)}`;
+  try {
+    const res = await _0x3b9a(_0x(8));
+    if (res[_0x(10)]) await _0x0c4e();
+    else alert(_0x(40) + res[_0x(12)]);
+  } catch (e) {
+    alert(_0x(39) + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> ${_0x(42)}`;
+  }
+}
+
+function _0x2f8a() {
+  const rows = _0x0e5f();
+  if (!rows.length) {
+    alert(_0x(29));
+    return;
+  }
+  const headers = [_0x(30), _0x(31), _0x(32), _0x(33), _0x(34), _0x(35)];
+  const csvRows = rows.map(r => {
+    const p = Number(r.payout) || 0;
+    const st = p > 0 ? _0x(25) : _0x(26);
+    const exact = _0x1a7c(r.dts);
+    const dts = exact === "—" ? "" : "\t" + exact;
+    return [dts, r.ani || "", r.state || "", r.call_duration_sec || "", p.toFixed(2), st]
+      .map(v => {
+        const s = String(v);
+        return s.includes(",") || s.includes('"') || s.includes("\n") ? `"${s.replace(/"/g, '""')}"` : s;
+      })
+      .join(",");
   });
-  const csv=[headers[_0x1c(0x7d)](",")][_0x1c(0x7e)](csvRows)[_0x1c(0x7d)]("\n");
-  const blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8;"});
-  const url=URL[_0x1c(0x7f)](blob);
-  const a=document[_0x1c(0x41)]("a");
-  a[_0x1c(0x81)]=url;
-  a[_0x1c(0x80)]="vtm-calls-"+new Date()[_0x1c(0x7a)]()[_0x1c(0x7b)](0,10)+".csv";
-  a[_0x1c(0x48)]("click");
-  URL[_0x1c(0x7f)](url);
+  const csv = [headers.join(",")].concat(csvRows).join("\n");
+  const blob = new Blob(["\uFEFF" + csv], { type: _0x(38) });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = _0x(36) + new Date().toISOString().slice(0, 10) + _0x(37);
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
-/* ========== INVOICE MODULE ========== */
-function _0x2b8e(d){
-  if(!(d instanceof Date)||isNaN(d))return"—";
-  const p=n=>String(n)[_0x1c(0x68)](2,"0");
-  return `${d[_0x1c(0x6e)]()}-${p(d[_0x1c(0x6f)]()+1)}-${p(d[_0x1c(0x70)]())}`;
+/* ========== INVOICE ========== */
+function formatDate(d) {
+  if (!(d instanceof Date) || isNaN(d)) return "—";
+  const p = n => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
-function _0x3c1f(dts){
-  if(!dts)return null;
-  const d=new Date(dts);
-  return isNaN(d[_0x1c(0x74)]())?null:d;
+
+function formatTimestamp(dts) {
+  if (!dts) return "—";
+  const d = new Date(dts);
+  if (isNaN(d.getTime())) return String(dts);
+  const p = n => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
-function _0x4d2a(dts){
-  if(!dts)return"—";
-  const d=new Date(dts);
-  if(isNaN(d[_0x1c(0x74)]()))return String(dts);
-  const p=n=>String(n)[_0x1c(0x68)](2,"0");
-  return `${d[_0x1c(0x6e)]()}-${p(d[_0x1c(0x6f)]()+1)}-${p(d[_0x1c(0x70)]())} ${p(d[_0x1c(0x71)]())}:${p(d[_0x1c(0x72)]())}`;
-}
-function _0x5e3b(ani){
-  if(!ani)return"—";
-  const s=String(ani)[_0x1c(0x7c)](/\D/g,"");
-  if(s[_0x1c(0x6e)]===10)return`(${s[_0x1c(0x7b)](0,3)}) ${s[_0x1c(0x7b)](3,6)}-${s[_0x1c(0x7b)](6)}`;
-  if(s[_0x1c(0x6e)]===11&&s[0]==="1")return`+1 (${s[_0x1c(0x7b)](1,4)}) ${s[_0x1c(0x7b)](4,7)}-${s[_0x1c(0x7b)](7)}`;
+
+function formatPhone(ani) {
+  if (!ani) return "—";
+  const s = String(ani).replace(/\D/g, "");
+  if (s.length === 10) return `(${s.slice(0, 3)}) ${s.slice(3, 6)}-${s.slice(6)}`;
+  if (s.length === 11 && s[0] === "1") return `+1 (${s.slice(1, 4)}) ${s.slice(4, 7)}-${s.slice(7)}`;
   return ani;
 }
-function _0x6f4c(sec){
-  const s=Number(sec)||0;
-  if(s<60)return s+"s";
-  const m=Math[_0x1c(0x78)](s/60);
-  const r=s%60;
-  return m+":"+String(r)[_0x1c(0x68)](2,"0");
+
+function formatDuration(sec) {
+  const s = Number(sec) || 0;
+  if (s < 60) return s + "s";
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return m + ":" + String(r).padStart(2, "0");
 }
 
-window[_0x1c(0x84)]=function(calls,options={}){
-  if(!Array.isArray(calls)||calls[_0x1c(0x6e)]===0){
+window.openInvoiceModal = function (calls, options = {}) {
+  if (!Array.isArray(calls) || calls.length === 0) {
     alert("No calls selected for invoicing.");
     return;
   }
-  const tbody=document[_0x1c(0x4a)]("invoiceTableBody");
-  tbody[_0x1c(0x46)]="";
-  const now=new Date();
-  const invDate=_0x2b8e(now);
-  const dueDate=_0x2b8e(new Date(now.getTime()+15*24*60*60*1000));
-  const invNum=options.invoiceNumber||("INV-"+now[_0x1c(0x6e)]()+"-"+String(now[_0x1c(0x6f)]()+1)[_0x1c(0x68)](2,"0")+String(now[_0x1c(0x70)]())[_0x1c(0x68)](2,"0")+"-"+String(Math[_0x1c(0x78)](Math[_0x1c(0x79)]()*9000)+1000));
-  const dates=calls[_0x1c(0x6b)](c=>_0x3c1f(c.dts))[_0x1c(0x6a)](Boolean)[_0x1c(0x6c)]((a,b)=>a-b);
-  let period="—";
-  if(dates[_0x1c(0x6e)]){
-    const first=_0x2b8e(dates[0]);
-    const last=_0x2b8e(dates[dates[_0x1c(0x6e)]-1]);
-    period=first===last?first:first+" – "+last;
+
+  const tbody = document.getElementById("invoiceTableBody");
+  tbody.innerHTML = "";
+
+  const now = new Date();
+  const invDate = formatDate(now);
+  const dueDate = formatDate(new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000));
+  const invNum = options.invoiceNumber ||
+    `INV-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}-${String(Math.floor(Math.random() * 9000) + 1000)}`;
+
+  const dates = calls
+    .map(c => {
+      const d = new Date(c.dts);
+      return isNaN(d.getTime()) ? null : d;
+    })
+    .filter(Boolean)
+    .sort((a, b) => a - b);
+
+  let period = "—";
+  if (dates.length) {
+    const first = formatDate(dates[0]);
+    const last = formatDate(dates[dates.length - 1]);
+    period = first === last ? first : `${first} – ${last}`;
   }
-  document[_0x1c(0x4a)]("invNumber")[_0x1c(0x45)]=invNum;
-  document[_0x1c(0x4a)]("invDate")[_0x1c(0x45)]=invDate;
-  document[_0x1c(0x4a)]("invDueDate")[_0x1c(0x45)]=dueDate;
-  document[_0x1c(0x4a)]("invPeriod")[_0x1c(0x45)]=period;
-  if(options.billToName)document[_0x1c(0x4a)]("billToName")[_0x1c(0x45)]=options.billToName;
-  if(options.billToAddress)document[_0x1c(0x4a)]("billToAddress")[_0x1c(0x46)]=options.billToAddress;
-  let subtotal=0;
-  calls[_0x1c(0x64)](call=>{
-    const payout=Number(call.payout)||0;
-    subtotal+=payout;
-    const tr=document[_0x1c(0x41)]("tr");
-    tr[_0x1c(0x46)]=`<td>${_0x4d2a(call.dts)}</td><td class="mono">${_0x5e3b(call.ani)}</td><td>${(call.state||"—")[_0x1c(0x75)]()[_0x1c(0x7e)]()}</td><td>${_0x6f4c(call.call_duration_sec)}</td><td>$${payout[_0x1c(0x67)](2)}</td>`;
-    tbody[_0x1c(0x47)](tr);
+
+  document.getElementById("invNumber").textContent = invNum;
+  document.getElementById("invDate").textContent = invDate;
+  document.getElementById("invDueDate").textContent = dueDate;
+  document.getElementById("invPeriod").textContent = period;
+
+  if (options.billToName) document.getElementById("billToName").textContent = options.billToName;
+  if (options.billToAddress) document.getElementById("billToAddress").innerHTML = options.billToAddress;
+
+  let subtotal = 0;
+  calls.forEach(call => {
+    const payout = Number(call.payout) || 0;
+    subtotal += payout;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${formatTimestamp(call.dts)}</td>
+      <td class="mono">${formatPhone(call.ani)}</td>
+      <td>${(call.state || "—").toString().toUpperCase()}</td>
+      <td>${formatDuration(call.call_duration_sec)}</td>
+      <td>$${payout.toFixed(2)}</td>`;
+    tbody.appendChild(tr);
   });
-  const adjustments=Number(options.adjustments)||0;
-  const total=subtotal+adjustments;
-  document[_0x1c(0x4a)]("invSubtotal")[_0x1c(0x45)]="$"+subtotal[_0x1c(0x67)](2);
-  document[_0x1c(0x4a)]("invAdjustments")[_0x1c(0x45)]=adjustments===0?"$0.00":(adjustments>0?"+$"+adjustments[_0x1c(0x67)](2):"-$"+Math[_0x1c(0x7a)](adjustments)[_0x1c(0x67)](2));
-  document[_0x1c(0x4a)]("invTotal")[_0x1c(0x45)]="$"+total[_0x1c(0x67)](2);
-  document[_0x1c(0x4a)]("invoiceModal")[_0x1c(0x4c)][_0x1c(0x4d)]("open");
-  document[_0x1c(0x83)][_0x1c(0x50)][_0x1c(0x83)]="hidden";
+
+  const adjustments = Number(options.adjustments) || 0;
+  const total = subtotal + adjustments;
+
+  document.getElementById("invSubtotal").textContent = "$" + subtotal.toFixed(2);
+  document.getElementById("invAdjustments").textContent =
+    adjustments === 0 ? "$0.00" : (adjustments > 0 ? "+$" + adjustments.toFixed(2) : "-$" + Math.abs(adjustments).toFixed(2));
+  document.getElementById("invTotal").textContent = "$" + total.toFixed(2);
+
+  document.getElementById("invoiceModal").classList.add("open");
+  document.body.style.overflow = "hidden";
 };
 
-window[_0x1c(0x85)]=function(){
-  document[_0x1c(0x4a)]("invoiceModal")[_0x1c(0x4c)][_0x1c(0x4e)]("open");
-  document[_0x1c(0x83)][_0x1c(0x50)][_0x1c(0x83)]="";
+window.closeInvoiceModal = function () {
+  document.getElementById("invoiceModal").classList.remove("open");
+  document.body.style.overflow = "";
 };
-window[_0x1c(0x86)]=function(){window.print();};
 
-function openInvoiceFromCurrentFilter(){
-  const rows=_0x0e5f()[_0x1c(0x6a)](r=>Number(r.payout)>0);
-  window[_0x1c(0x84)](rows);
-}
+window.printInvoice = function () {
+  window.print();
+};
+
+window.openInvoiceFromCurrentFilter = function () {
+  const rows = _0x0e5f().filter(r => Number(r.payout) > 0);
+  openInvoiceModal(rows);
+};
 
 /* ========== BUILD UI ========== */
-const root=document[_0x1c(0x4a)]("root");
-
-root[_0x1c(0x46)]=`
+document.getElementById("root").innerHTML = `
 <div id="a0" class="min-h-screen flex items-center justify-center p-5">
   <div class="login-card fade-in">
     <div class="text-center mb-8">
@@ -469,9 +573,16 @@ root[_0x1c(0x46)]=`
         </div>
         <div class="table-wrap">
           <table>
-            <thead><tr>
-              <th>Timestamp</th><th>ANI</th><th>State</th><th>Duration</th><th>Payout</th><th>Status</th>
-            </tr></thead>
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>ANI</th>
+                <th>State</th>
+                <th>Duration</th>
+                <th>Payout</th>
+                <th>Status</th>
+              </tr>
+            </thead>
             <tbody id="ak"></tbody>
           </table>
         </div>
@@ -480,6 +591,7 @@ root[_0x1c(0x46)]=`
         </div>
       </div>
     </div>
+
     <div id="am" class="hidden space-y-5 fade-in">
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
         <div class="metric"><div class="metric-label">Total Calls</div><div id="an" class="metric-value">—</div></div>
@@ -493,7 +605,14 @@ root[_0x1c(0x46)]=`
         </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>State</th><th>Calls</th><th>Total Payout</th><th>Average Bid</th></tr></thead>
+            <thead>
+              <tr>
+                <th>State</th>
+                <th>Calls</th>
+                <th>Total Payout</th>
+                <th>Average Bid</th>
+              </tr>
+            </thead>
             <tbody id="aq"></tbody>
           </table>
         </div>
@@ -504,7 +623,13 @@ root[_0x1c(0x46)]=`
         </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Month</th><th>Total Payout</th><th>Total Calls</th></tr></thead>
+            <thead>
+              <tr>
+                <th>Month</th>
+                <th>Total Payout</th>
+                <th>Total Calls</th>
+              </tr>
+            </thead>
             <tbody id="ar"></tbody>
           </table>
         </div>
