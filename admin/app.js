@@ -93,7 +93,7 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
 .inv-table td{padding:12px 16px;color:var(--inv-text);border-top:1px solid var(--inv-border)}
 .inv-table td:nth-child(4),.inv-table td:nth-child(5){text-align:right;font-variant-numeric:tabular-nums}
 .inv-table td.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
-.inv-totals{display:flex;justify-content:flex-end;margin-bottom:36px}
+.inv-totals{display:flex;justify-content:flex-end;margin-bottom:20px}
 .totals-box{width:260px}
 .total-row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px}
 .total-row span:first-child{color:var(--inv-muted)}
@@ -101,13 +101,6 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
 .total-final{border-top:1px solid var(--inv-border);padding-top:12px;margin-top:8px;display:flex;justify-content:space-between;align-items:center}
 .total-final span:first-child{font-size:13px;font-weight:600;color:var(--inv-text)}
 .total-badge{background:var(--inv-primary);color:#fff;font-size:15px;font-weight:700;padding:6px 14px;border-radius:8px}
-.inv-sign{display:grid;grid-template-columns:1fr 1fr;gap:40px;padding-top:24px;border-top:1px solid var(--inv-border)}
-@media(max-width:640px){.inv-sign{grid-template-columns:1fr}}
-.sign-block p.label{font-size:11px;color:var(--inv-muted);margin-bottom:36px}
-.sign-line{width:180px;border-bottom:1px solid #cbd5e1;margin-bottom:8px}
-.sign-block .name{font-size:13px;font-weight:600;color:var(--inv-text)}
-.sign-block .role{font-size:12px;color:var(--inv-muted)}
-.inv-footer{margin-top:36px;text-align:center;font-size:11px;color:#94a3b8;line-height:1.5}
 .inv-form{padding:20px 24px;background:#f8fafc;border-bottom:1px solid var(--inv-border)}
 .inv-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 @media(max-width:640px){.inv-form-grid{grid-template-columns:1fr}}
@@ -505,11 +498,10 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
     const accountTitle = document.getElementById("invAccountTitle").value.trim() || "—";
     const accountNumber = document.getElementById("invAccountNumber").value.trim() || "—";
     const routing = document.getElementById("invRouting").value.trim() || "—";
-    const swift = document.getElementById("invSwift").value.trim() || "—";
 
     const [y, m] = month.split("-").map(Number);
     const start = new Date(y, m - 1, 1);
-    const end = new Date(y, m, 0);
+    const end = new Date(y, m, 0, 23, 59, 59, 999);
 
     const filtered = calls.filter(r => {
       if (!r.dts) return false;
@@ -523,12 +515,11 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
 
     const now = new Date();
     const invDate = formatDate(now);
-    const dueDate = formatDate(new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000));
     const invNum = `INV-${y}${String(m).padStart(2, "0")}-${String(Math.floor(Math.random() * 9000) + 1000)}`;
 
     document.getElementById("invNumber").textContent = invNum;
     document.getElementById("invDate").textContent = invDate;
-    document.getElementById("invDueDate").textContent = dueDate;
+    document.getElementById("invTotalCalls").textContent = filtered.length;
     document.getElementById("invPeriod").textContent = start.toLocaleString("en-US", { month: "long", year: "numeric" });
     document.getElementById("billToName").textContent = buyer;
 
@@ -536,7 +527,6 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
     document.getElementById("accountTitleDisplay").textContent = accountTitle;
     document.getElementById("accountNumberDisplay").textContent = accountNumber;
     document.getElementById("routingDisplay").textContent = routing;
-    document.getElementById("swiftDisplay").textContent = swift;
 
     let subtotal = 0;
     filtered.forEach(call => {
@@ -553,7 +543,6 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
     });
 
     document.getElementById("invSubtotal").textContent = "$" + subtotal.toFixed(2);
-    document.getElementById("invAdjustments").textContent = "$0.00";
     document.getElementById("invTotal").textContent = "$" + subtotal.toFixed(2);
   }
 
@@ -761,10 +750,6 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
           <label>IBAN / Routing</label>
           <input id="invRouting" type="text" placeholder="IBAN or Routing Number" oninput="generateInvoice()">
         </div>
-        <div>
-          <label>Swift Code</label>
-          <input id="invSwift" type="text" placeholder="Swift Code" oninput="generateInvoice()">
-        </div>
       </div>
     </div>
 
@@ -781,7 +766,7 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
           <div class="inv-badge">INVOICE</div>
           <div class="inv-meta-row"><span>Invoice #</span><span id="invNumber">—</span></div>
           <div class="inv-meta-row"><span>Invoice Date</span><span id="invDate">—</span></div>
-          <div class="inv-meta-row"><span>Due Date</span><span id="invDueDate">—</span></div>
+          <div class="inv-meta-row"><span>Total Calls</span><span id="invTotalCalls">0</span></div>
           <div class="inv-meta-row"><span>Billing Period</span><span id="invPeriod">—</span></div>
         </div>
       </div>
@@ -797,7 +782,6 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
           <div class="bank-row"><span>Account Title</span><span id="accountTitleDisplay">—</span></div>
           <div class="bank-row"><span>Account Number</span><span id="accountNumberDisplay">—</span></div>
           <div class="bank-row"><span>IBAN / Routing</span><span id="routingDisplay">—</span></div>
-          <div class="bank-row"><span>Swift Code</span><span id="swiftDisplay">—</span></div>
         </div>
       </div>
 
@@ -819,31 +803,11 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
       <div class="inv-totals">
         <div class="totals-box">
           <div class="total-row"><span>Subtotal</span><span id="invSubtotal">$0.00</span></div>
-          <div class="total-row"><span>Adjustments / Deductions</span><span id="invAdjustments">$0.00</span></div>
           <div class="total-final">
             <span>Total Due</span>
             <div class="total-badge" id="invTotal">$0.00</div>
           </div>
         </div>
-      </div>
-
-      <div class="inv-sign">
-        <div class="sign-block">
-          <p class="label">Authorized Signatory</p>
-          <div class="sign-line"></div>
-          <div class="name">Vocal Tech Marketing</div>
-          <div class="role">Finance Department</div>
-        </div>
-        <div class="sign-block">
-          <p class="label">Client Acknowledgement</p>
-          <div class="sign-line"></div>
-          <div class="name">________________________</div>
-          <div class="role">Signature & Date</div>
-        </div>
-      </div>
-
-      <div class="inv-footer">
-        Thank you for your business. Payment is due within 15 days of invoice date.
       </div>
     </div>
   </div>
