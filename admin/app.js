@@ -60,6 +60,8 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
 .inv-actions{display:flex;gap:10px}
 .btn-print{display:inline-flex;align-items:center;gap:7px;background:var(--inv-primary);color:#fff;font-size:13px;font-weight:600;padding:9px 16px;border:none;border-radius:8px;cursor:pointer}
 .btn-print:hover{background:#467373}
+.btn-pdf{display:inline-flex;align-items:center;gap:7px;background:#1e293b;color:#fff;font-size:13px;font-weight:600;padding:9px 16px;border:none;border-radius:8px;cursor:pointer}
+.btn-pdf:hover{background:#0f172a}
 .btn-close-inv{width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid var(--inv-border);border-radius:8px;color:var(--inv-muted);cursor:pointer;font-size:18px}
 .btn-close-inv:hover{background:#f1f5f9;color:var(--inv-text)}
 .inv-body{padding:40px 44px;color:var(--inv-text);font-family:'Inter',system-ui,sans-serif}
@@ -458,18 +460,11 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
 
   function formatPhone(ani) {
     if (!ani) return "—";
-    const s = String(ani).replace(/\D/g, "");
-    if (s.length === 10) return `(${s.slice(0, 3)}) ${s.slice(3, 6)}-${s.slice(6)}`;
-    if (s.length === 11 && s[0] === "1") return `+1 (${s.slice(1, 4)}) ${s.slice(4, 7)}-${s.slice(7)}`;
-    return ani;
+    return String(ani).replace(/\D/g, "");
   }
 
   function formatDuration(sec) {
-    const s = Number(sec) || 0;
-    if (s < 60) return s + "s";
-    const m = Math.floor(s / 60);
-    const r = s % 60;
-    return m + ":" + String(r).padStart(2, "0");
+    return (Number(sec) || 0) + "s";
   }
 
   function openInvoiceModal() {
@@ -553,6 +548,18 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
 
   function printInvoice() {
     window.print();
+  }
+
+  function downloadPDF() {
+    const element = document.getElementById("invoicePrintArea");
+    const opt = {
+      margin: [10, 10, 10, 10],
+      filename: document.getElementById("invNumber").textContent + ".pdf",
+      image: { type: "jpeg", quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
+    };
+    html2pdf().set(opt).from(element).save();
   }
 
   document.getElementById("root").innerHTML = `
@@ -718,7 +725,11 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
       <div class="inv-actions">
         <button class="btn-print" onclick="printInvoice()">
           <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
-          Print / Save as PDF
+          Print
+        </button>
+        <button class="btn-pdf" onclick="downloadPDF()">
+          <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          Download PDF
         </button>
         <button class="btn-close-inv" onclick="closeInvoiceModal()">×</button>
       </div>
@@ -759,7 +770,7 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
           <div class="inv-logo"><img src="https://vocaltechmarketing.com/images/logo.png" alt="VTM"></div>
           <div class="inv-company">
             <h1>Vocal Tech Marketing</h1>
-            <div class="tagline">Call Analytics & Lead Generation</div>
+            <div class="tagline">Where brands find their voices!</div>
           </div>
         </div>
         <div class="inv-meta">
@@ -825,6 +836,7 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
   window.openInvoiceModal = openInvoiceModal;
   window.closeInvoiceModal = closeInvoiceModal;
   window.printInvoice = printInvoice;
+  window.downloadPDF = downloadPDF;
   window.generateInvoice = generateInvoice;
 
   checkLogin();
