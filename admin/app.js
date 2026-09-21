@@ -200,6 +200,9 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
       if (!document.getElementById("am").classList.contains("hidden")) {
         renderAnalytics();
       }
+      if (document.getElementById("invoiceModal").classList.contains("open")) {
+        generateInvoice();
+      }
     } catch (e) {
       console.error(e);
     }
@@ -296,14 +299,28 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
     return ((c.state || "Unknown").toString().trim().toUpperCase()) || "UNKNOWN";
   }
 
-  function getAnalyticsFiltered() {
+  // A single Date wins over From/To. If From is after To, they are swapped.
+  function getAnalyticsRange() {
     const day = document.getElementById("anDate").value;
-    const month = document.getElementById("anMonth").value;
+    let from = document.getElementById("anFrom").value;
+    let to = document.getElementById("anTo").value;
+    if (day) {
+      from = day;
+      to = day;
+    } else if (from && to && from > to) {
+      const t = from; from = to; to = t;
+    }
+    return { day, from, to };
+  }
+
+  function getAnalyticsFiltered() {
+    const { from, to } = getAnalyticsRange();
     const st = document.getElementById("anState").value;
     return calls.filter(c => {
       const d = getRowDate(c.dts);
-      if (day) { if (d !== day) return false; }
-      else if (month) { if (d.slice(0, 7) !== month) return false; }
+      if ((from || to) && !d) return false;
+      if (from && d < from) return false;
+      if (to && d > to) return false;
       if (st !== "all" && normState(c) !== st) return false;
       return true;
     });
@@ -319,18 +336,24 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
   }
 
   function onAnDate() {
-    if (document.getElementById("anDate").value) document.getElementById("anMonth").value = "";
+    if (document.getElementById("anDate").value) {
+      document.getElementById("anFrom").value = "";
+      document.getElementById("anTo").value = "";
+    }
     renderAnalytics();
   }
 
-  function onAnMonth() {
-    if (document.getElementById("anMonth").value) document.getElementById("anDate").value = "";
+  function onAnRange() {
+    if (document.getElementById("anFrom").value || document.getElementById("anTo").value) {
+      document.getElementById("anDate").value = "";
+    }
     renderAnalytics();
   }
 
   function clearAnalyticsFilters() {
     document.getElementById("anDate").value = "";
-    document.getElementById("anMonth").value = "";
+    document.getElementById("anFrom").value = "";
+    document.getElementById("anTo").value = "";
     document.getElementById("anState").value = "all";
     renderAnalytics();
   }
@@ -350,10 +373,14 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
     document.getElementById("anTotal").textContent = "$" + tp.toFixed(2);
     document.getElementById("anAvg").textContent = "$" + (rows.length ? tp / rows.length : 0).toFixed(2);
 
-    const day = document.getElementById("anDate").value;
-    const month = document.getElementById("anMonth").value;
+    const { day, from, to } = getAnalyticsRange();
     const st = document.getElementById("anState").value;
-    const parts = [day || month || "All time", st === "all" ? "All states" : st];
+    let when = "All time";
+    if (day) when = day;
+    else if (from && to) when = `${from} → ${to}`;
+    else if (from) when = `From ${from}`;
+    else if (to) when = `Until ${to}`;
+    const parts = [when, st === "all" ? "All states" : st];
     document.getElementById("anRange").textContent = parts.join(" · ");
 
     renderStates(rows);
@@ -519,12 +546,11 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
     return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
   }
 
+  // Same source string as the Overview table, trimmed to minutes (no timezone conversion)
   function formatTimestamp(dts) {
-    if (!dts) return "—";
-    const d = new Date(dts);
-    if (isNaN(d.getTime())) return String(dts);
-    const p = n => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+    const s = formatTs(dts);
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.replace("T", " ").slice(0, 16);
+    return s;
   }
 
   function formatPhone(ani) {
@@ -536,10 +562,23 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
     return (Number(sec) || 0) + "s";
   }
 
+  let invRand = 0; // fixed per modal open so the invoice number doesn't change while typing
+
   function openInvoiceModal() {
     const monthSelect = document.getElementById("invMonthSelect");
     monthSelect.innerHTML = "";
+
+    // months (YYYY-MM) that actually have billable calls
+    const billableMonths = new Set();
+    calls.forEach(r => {
+      if (Number(r.payout) > 0) {
+        const k = getRowDate(r.dts).slice(0, 7);
+        if (k) billableMonths.add(k);
+      }
+    });
+
     const now = new Date();
+    const keys = [];
     for (let i = 0; i < 12; i++) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const val = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -547,9 +586,19 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
       const opt = document.createElement("option");
       opt.value = val;
       opt.textContent = label;
-      if (i === 1) opt.selected = true;
       monthSelect.appendChild(opt);
+      keys.push(val);
     }
+
+    // Default: previous month if it has billable calls, otherwise the newest month that does
+    let def = keys[1];
+    if (!billableMonths.has(def)) {
+      const found = keys.find(k => billableMonths.has(k));
+      if (found) def = found;
+    }
+    monthSelect.value = def;
+
+    invRand = Math.floor(Math.random() * 9000) + 1000;
     document.getElementById("invoiceModal").classList.add("open");
     document.body.style.overflow = "hidden";
     generateInvoice();
@@ -564,18 +613,13 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
     const routing = document.getElementById("invRouting").value.trim() || "—";
     const [y, m] = month.split("-").map(Number);
     const start = new Date(y, m - 1, 1);
-    const end = new Date(y, m, 0, 23, 59, 59, 999);
-    const filtered = calls.filter(r => {
-      if (!r.dts) return false;
-      const d = new Date(r.dts);
-      if (isNaN(d.getTime())) return false;
-      return d >= start && d <= end && Number(r.payout) > 0;
-    });
+    // Month match uses the same YYYY-MM-DD string as the tables, so no timezone drift at month edges
+    const filtered = calls.filter(r => Number(r.payout) > 0 && getRowDate(r.dts).slice(0, 7) === month);
     const tbody = document.getElementById("invoiceTableBody");
     tbody.innerHTML = "";
     const now = new Date();
     const invDate = formatDate(now);
-    const invNum = `INV-${y}${String(m).padStart(2, "0")}-${String(Math.floor(Math.random() * 9000) + 1000)}`;
+    const invNum = `INV-${y}${String(m).padStart(2, "0")}-${invRand || 1000}`;
     document.getElementById("invNumber").textContent = invNum;
     document.getElementById("invDate").textContent = invDate;
     document.getElementById("invTotalCalls").textContent = filtered.length;
@@ -769,8 +813,12 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
               <input id="anDate" type="date" class="input-dark px-3.5 py-2.5" style="color-scheme:dark" onchange="onAnDate()">
             </div>
             <div>
-              <label class="block text-[11px] font-medium mb-1.5" style="color:var(--muted)">Month</label>
-              <input id="anMonth" type="month" class="input-dark px-3.5 py-2.5" style="color-scheme:dark" onchange="onAnMonth()">
+              <label class="block text-[11px] font-medium mb-1.5" style="color:var(--muted)">From</label>
+              <input id="anFrom" type="date" class="input-dark px-3.5 py-2.5" style="color-scheme:dark" onchange="onAnRange()">
+            </div>
+            <div>
+              <label class="block text-[11px] font-medium mb-1.5" style="color:var(--muted)">To</label>
+              <input id="anTo" type="date" class="input-dark px-3.5 py-2.5" style="color-scheme:dark" onchange="onAnRange()">
             </div>
             <div>
               <label class="block text-[11px] font-medium mb-1.5" style="color:var(--muted)">State</label>
@@ -955,7 +1003,7 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
   window.downloadPDF = downloadPDF;
   window.generateInvoice = generateInvoice;
   window.onAnDate = onAnDate;
-  window.onAnMonth = onAnMonth;
+  window.onAnRange = onAnRange;
   window.clearAnalyticsFilters = clearAnalyticsFilters;
   window.renderAnalytics = renderAnalytics;
 
