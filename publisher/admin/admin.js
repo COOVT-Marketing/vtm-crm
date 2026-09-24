@@ -9,8 +9,6 @@
 
   const BILLABLE_THRESHOLD_SECONDS = 120;
   const SESSION_KEY = "vtm_admin_session";
-
-  // Sheet timestamps are Pakistan Standard Time (UTC+5)
   const SHEET_TZ_OFFSET_HOURS = 5;
 
   const COL_MAP = {
@@ -88,9 +86,6 @@
     return "$" + Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
-  /** Parse sheet timestamp as PKT and display in US Eastern */
-
-  /** Parse sheet timestamp as Pakistan Standard Time (UTC+5) → Date (UTC) */
   function parseSheetTimestamp(str) {
     if (!str) return null;
     const s = String(str).trim();
@@ -100,14 +95,12 @@
       const d = new Date(s);
       return isNaN(d.getTime()) ? null : d;
     }
-    // YYYY-MM-DD HH:MM:SS or YYYY/MM/DD
     let parts = s.match(/(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})(?:[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
     if (parts) {
       const y = +parts[1], mo = +parts[2] - 1, day = +parts[3];
       const h = +(parts[4] || 0), mi = +(parts[5] || 0), sec = +(parts[6] || 0);
-      return new Date(Date.UTC(y, mo, day, h - 5, mi, sec)); // PKT → UTC
+      return new Date(Date.UTC(y, mo, day, h - 5, mi, sec));
     }
-    // DD/MM/YYYY HH:MM:SS
     parts = s.match(/(\d{1,2})[\/](\d{1,2})[\/](\d{4})(?:[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
     if (parts) {
       const day = +parts[1], mo = +parts[2] - 1, y = +parts[3];
@@ -118,7 +111,6 @@
     return isNaN(d.getTime()) ? null : d;
   }
 
-  /** Calendar date YYYY-MM-DD in US Eastern (for date filters) */
   function getEasternDateKey(str) {
     const d = parseSheetTimestamp(str);
     if (!d) return "";
@@ -163,19 +155,12 @@
     return m > 0 ? m + "m " + s + "s" : s + "s";
   }
 
-  /**
-   * Resolve final status:
-   * 1. Explicit override from sheet (admin-set)
-   * 2. Default from duration (<120 nonbillable, >=120 billable)
-   * 3. pending if no duration
-   */
   function resolveStatus(durationSeconds, override) {
     const o = (override || "").toString().trim().toLowerCase().replace(/[\s_-]+/g, "");
     if (o === "billable" || o === "billed") return "billable";
     if (o === "nonbillable" || o === "nb") return "nonbillable";
     if (o === "rejected" || o === "reject" || o === "qa" || o === "qarejected") return "rejected";
     if (o === "pending") return "pending";
-
     if (durationSeconds == null || durationSeconds === "" || Number(durationSeconds) <= 0) return "pending";
     const sec = Number(durationSeconds);
     if (isNaN(sec) || sec <= 0) return "pending";
@@ -266,70 +251,37 @@
     }
   }
 
-  async function saveStatus(row, newStatus) {
+  // ─── NEW: Single save that sends Status + Duration + Payout together ───
+  async function saveCall(row, status, duration, payout) {
     try {
-      await fetch(APPS_SCRIPT_URL, {
+      const res = await fetch(APPS_SCRIPT_URL, {
         method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "text/plain" },
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify({
-          submissionType: "UPDATE_STATUS",
+          submissionType: "UPDATE_CALL",
           sheetName: "Auto",
           timestamp: row.timestamp,
           phone: row.phone,
-          status: newStatus,
-          adminUser: currentUser ? currentUser.username : "",
-          lockAfter: true
-        })
+          status: status,
+          duration: duration,
+          payout: payout,
+          adminUser: currentUser ? currentUser.username : ""
+        }),
+        redirect: "follow"
       });
-      return true;
+      const text = await res.text();
+      let json;
+      try { json = JSON.parse(text); }
+      catch (e) {
+        const m = text.match(/\{[\s\S]*\}/);
+        if (m) json = JSON.parse(m[0]);
+        else return { ok: false, message: "Invalid response" };
+      }
+      if (json.status === "success") return { ok: true };
+      return { ok: false, message: json.message || "Save failed" };
     } catch (e) {
       console.error(e);
-      return false;
-    }
-  }
-
-  async function savePayout(row, payoutValue) {
-    try {
-      await fetch(APPS_SCRIPT_URL, {
-        method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "text/plain" },
-        body: JSON.stringify({
-          submissionType: "UPDATE_PAYOUT",
-          sheetName: "Auto",
-          timestamp: row.timestamp,
-          phone: row.phone,
-          payout: payoutValue,
-          lockAfter: true
-        })
-      });
-      return true;
-    } catch (e) {
-      console.error(e);
-      return false;
-    }
-  }
-
-  async function saveDuration(row, durationValue) {
-    try {
-      await fetch(APPS_SCRIPT_URL, {
-        method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "text/plain" },
-        body: JSON.stringify({
-          submissionType: "UPDATE_DURATION",
-          sheetName: "Auto",
-          timestamp: row.timestamp,
-          phone: row.phone,
-          duration: durationValue,
-          lockAfter: true
-        })
-      });
-      return true;
-    } catch (e) {
-      console.error(e);
-      return false;
+      return { ok: false, message: "Network error" };
     }
   }
 
@@ -413,7 +365,6 @@
     }
   }
 
-  /** Payout is $0 when non-billable or rejected */
   function isRowLocked(row) {
     if (!row) return false;
     if (row.locked === true) return true;
@@ -432,19 +383,15 @@
     const nonBillable = data.filter(function (r) { return r.status === "nonbillable"; });
     const rejected = data.filter(function (r) { return r.status === "rejected"; });
     const pending = data.filter(function (r) { return r.status === "pending"; });
-
     let sumPayout = 0;
     let sumDuration = 0;
     let durationCount = 0;
-
     billable.forEach(function (r) { sumPayout += getDisplayPayout(r); });
     data.forEach(function (r) {
       if (r.duration > 0) { sumDuration += r.duration; durationCount++; }
     });
-
     const avgPayout = billable.length ? sumPayout / billable.length : 0;
     const avgDuration = durationCount ? sumDuration / durationCount : null;
-
     const el = function (id) { return document.getElementById(id); };
     if (el("mTotalSales")) {
       el("mTotalSales").textContent = total.toLocaleString();
@@ -469,7 +416,6 @@
     const status = ($("#filterStatus") && $("#filterStatus").value) || "";
     const from = ($("#filterFrom") && $("#filterFrom").value) || "";
     const to = ($("#filterTo") && $("#filterTo").value) || "";
-
     filteredData = rawData.filter(function (r) {
       if (agent && r.agent !== agent) return false;
       if (company && r.company !== company) return false;
@@ -486,7 +432,6 @@
       }
       return true;
     });
-
     renderTable();
     updateMetrics(filteredData);
   }
@@ -499,7 +444,6 @@
     });
     agents.sort();
     companies.sort();
-
     const selA = $("#filterAgent");
     if (selA) {
       const cur = selA.value;
@@ -510,7 +454,6 @@
       });
       if (cur) selA.value = cur;
     }
-
     const selC = $("#filterCompany");
     if (selC) {
       const cur = selC.value;
@@ -528,7 +471,7 @@
     if (isRowLocked(row)) {
       const label = s === "billable" ? "Billable" : s === "nonbillable" ? "Non-Billable" : s === "rejected" ? "Rejected" : "Pending";
       const cls = s === "billable" ? "badge-billable" : s === "nonbillable" ? "badge-nonbillable" : s === "rejected" ? "badge-rejected" : "badge-pending";
-      return '<span class="badge ' + cls + '" title="Locked — already updated once">' + label + " 🔒</span>";
+      return '<span class="badge ' + cls + '" title="Locked — already saved">' + label + " 🔒</span>";
     }
     return (
       '<select class="status-select ' + s + '" data-id="' + row._id + '">' +
@@ -545,7 +488,7 @@
       return '<span title="Locked">' + formatDuration(row.duration) + "</span>";
     }
     return '<input type="number" class="duration-input" step="1" min="0" value="' + (row.duration || 0) +
-      '" data-id="' + row._id + '" title="Seconds — one edit only" style="width:88px;padding:0.35rem 0.5rem;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:inherit;font-size:0.85rem;text-align:right;" />';
+      '" data-id="' + row._id + '" style="width:88px;padding:0.35rem 0.5rem;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:inherit;font-size:0.85rem;text-align:right;" />';
   }
 
   function payoutInputHtml(row, payout) {
@@ -554,7 +497,15 @@
     }
     const forcedZero = row.status === "nonbillable" || row.status === "rejected";
     return '<input type="number" class="payout-input" step="0.01" min="0" value="' + Number(payout).toFixed(2) +
-      '" data-id="' + row._id + '" ' + (forcedZero ? 'disabled title="Payout $0 when Non-Billable/Rejected"' : 'title="One edit only — then locked"') + " />";
+      '" data-id="' + row._id + '" ' + (forcedZero ? 'disabled title="Payout $0 when Non-Billable/Rejected"' : '') + " />";
+  }
+
+  function saveButtonHtml(row) {
+    if (isRowLocked(row)) {
+      return '<span class="badge" style="opacity:0.6;" title="Already saved & locked">Locked 🔒</span>';
+    }
+    return '<button class="btn btn-primary btn-save" data-id="' + row._id + '" style="padding:0.35rem 0.7rem;font-size:0.8rem;">' +
+      '<i class="ti ti-device-floppy"></i> Save</button>';
   }
 
   function renderTable() {
@@ -589,103 +540,111 @@
         "<td>" + durationInputHtml(r) + "</td>" +
         "<td>" + statusSelectHtml(r) + "</td>" +
         "<td>" + payoutInputHtml(r, payout) + "</td>" +
+        "<td>" + saveButtonHtml(r) + "</td>" +
         "</tr>"
       );
     }).join("");
 
+    // Status change only updates local state (no auto-save)
     $$(".status-select").forEach(function (sel) {
-      sel.addEventListener("change", async function (e) {
+      sel.addEventListener("change", function (e) {
         const id = e.target.dataset.id;
         const row = filteredData.find(function (r) { return r._id === id; }) ||
-          rawData.find(function (r) { return r._id === id; });
-        if (!row) return;
-
-        if (isRowLocked(row)) {
-          showToast("This call is locked — already updated once", 3500);
-          renderTable();
-          return;
-        }
+                    rawData.find(function (r) { return r._id === id; });
+        if (!row || isRowLocked(row)) return;
         const newStatus = e.target.value;
         row.status = newStatus;
         row.statusOverride = newStatus;
-        updateMetrics(filteredData);
-        showToast("Saving status…");
-        const ok = await saveStatus(row, newStatus);
-        if (ok) {
-          row.locked = true;
-          row.adminLocked = "Yes";
-          showToast(
-            (newStatus === "nonbillable" || newStatus === "rejected"
-              ? "Marked " + newStatus + " · payout $0"
-              : "Status updated") + " · call locked"
-          );
+        // Force payout to 0 visually when non-billable/rejected
+        if (newStatus === "nonbillable" || newStatus === "rejected") {
+          const payoutInp = document.querySelector('.payout-input[data-id="' + id + '"]');
+          if (payoutInp) {
+            payoutInp.value = "0.00";
+            payoutInp.disabled = true;
+          }
         } else {
-          showToast("Failed to save status", 4000);
+          const payoutInp = document.querySelector('.payout-input[data-id="' + id + '"]');
+          if (payoutInp) payoutInp.disabled = false;
         }
-        renderTable();
+        updateMetrics(filteredData);
+      });
+    });
+
+    // Duration & Payout only update local state
+    $$(".duration-input").forEach(function (inp) {
+      inp.addEventListener("change", function (e) {
+        const id = e.target.dataset.id;
+        const row = filteredData.find(function (r) { return r._id === id; }) ||
+                    rawData.find(function (r) { return r._id === id; });
+        if (!row || isRowLocked(row)) return;
+        const val = Math.max(0, Math.round(parseNumber(e.target.value)));
+        row.duration = val;
+        e.target.value = String(val);
+        if (!row.statusOverride) row.status = resolveStatus(val, "");
+        updateMetrics(filteredData);
       });
     });
 
     $$(".payout-input").forEach(function (inp) {
       if (inp.disabled) return;
-      inp.addEventListener("change", async function (e) {
+      inp.addEventListener("change", function (e) {
         const id = e.target.dataset.id;
         const row = filteredData.find(function (r) { return r._id === id; }) ||
-          rawData.find(function (r) { return r._id === id; });
-        if (!row) return;
-        if (isRowLocked(row)) {
-          showToast("This call is locked — already updated once", 3500);
-          renderTable();
-          return;
-        }
+                    rawData.find(function (r) { return r._id === id; });
+        if (!row || isRowLocked(row)) return;
         if (row.status === "nonbillable" || row.status === "rejected") {
           e.target.value = "0.00";
-          showToast("Payout is $0 for Non-Billable / Rejected");
           return;
         }
         const val = parseNumber(e.target.value);
         row.payout = val;
         e.target.value = val.toFixed(2);
         updateMetrics(filteredData);
-        showToast("Saving payout…");
-        const ok = await savePayout(row, val);
-        if (ok) {
-          row.locked = true;
-          row.adminLocked = "Yes";
-          showToast("Payout saved · call locked");
-        } else {
-          showToast("Failed to save payout", 4000);
-        }
-        renderTable();
       });
     });
 
-    $$(".duration-input").forEach(function (inp) {
-      inp.addEventListener("change", async function (e) {
-        const id = e.target.dataset.id;
+    // Save button
+    $$(".btn-save").forEach(function (btn) {
+      btn.addEventListener("click", async function (e) {
+        const id = e.currentTarget.dataset.id;
         const row = filteredData.find(function (r) { return r._id === id; }) ||
-          rawData.find(function (r) { return r._id === id; });
-        if (!row) return;
-        if (isRowLocked(row)) {
-          showToast("This call is locked — already updated once", 3500);
-          renderTable();
-          return;
-        }
-        const val = Math.max(0, Math.round(parseNumber(e.target.value)));
-        row.duration = val;
-        e.target.value = String(val);
-        if (!row.statusOverride) row.status = resolveStatus(val, "");
-        updateMetrics(filteredData);
-        showToast("Saving duration…");
-        const ok = await saveDuration(row, val);
-        if (ok) {
+                    rawData.find(function (r) { return r._id === id; });
+        if (!row || isRowLocked(row)) return;
+
+        // Read current values from the inputs (in case user changed them)
+        const statusSel = document.querySelector('.status-select[data-id="' + id + '"]');
+        const durationInp = document.querySelector('.duration-input[data-id="' + id + '"]');
+        const payoutInp = document.querySelector('.payout-input[data-id="' + id + '"]');
+
+        const status = statusSel ? statusSel.value : row.status;
+        const duration = durationInp ? Math.max(0, Math.round(parseNumber(durationInp.value))) : row.duration;
+        let payout = payoutInp ? parseNumber(payoutInp.value) : row.payout;
+
+        if (status === "nonbillable" || status === "rejected") payout = 0;
+
+        // Update local state
+        row.status = status;
+        row.statusOverride = status;
+        row.duration = duration;
+        row.payout = payout;
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="ti ti-loader"></i> Saving…';
+        showToast("Saving…");
+
+        const result = await saveCall(row, status, duration, payout);
+
+        if (result.ok) {
           row.locked = true;
           row.adminLocked = "Yes";
-          showToast("Duration saved · call locked");
+          showToast("Saved & locked successfully");
         } else {
-          showToast("Failed to save duration", 4000);
+          showToast(result.message || "Failed to save", 4000);
+          btn.disabled = false;
+          btn.innerHTML = '<i class="ti ti-device-floppy"></i> Save';
         }
         renderTable();
+        updateMetrics(filteredData);
       });
     });
   }
@@ -726,7 +685,6 @@
   function buildLoginUI() {
     const root = document.getElementById("root");
     if (!root) return;
-
     root.innerHTML =
       '<div class="login-screen">' +
       '<div class="login-card">' +
@@ -750,24 +708,20 @@
       "</form>" +
       '<div class="login-footer">VTM internal use only</div>' +
       "</div></div>";
-
     $("#loginForm").addEventListener("submit", async function (e) {
       e.preventDefault();
       const username = $("#loginUsername").value.trim();
       const password = $("#loginPassword").value;
       const errEl = $("#loginError");
       const btn = $("#loginBtn");
-
       if (!username || !password) {
         errEl.textContent = "Enter username and password.";
         errEl.classList.add("show");
         return;
       }
-
       errEl.classList.remove("show");
       btn.disabled = true;
       btn.innerHTML = '<i class="ti ti-loader"></i> Signing in…';
-
       const result = await attemptLogin(username, password);
       if (result.ok) {
         currentUser = { username: result.username };
@@ -786,7 +740,6 @@
     const root = document.getElementById("root");
     if (!root) return;
     const userName = currentUser ? currentUser.username : "Admin";
-
     root.innerHTML =
       '<div id="loading" class="loading-overlay hidden">' +
       '<div class="spinner"></div>' +
@@ -828,11 +781,11 @@
       '<div class="table-header"><h2>All Call Records <span class="admin-tag">Admin</span></h2><span class="table-count" id="tableCount">0 records</span></div>' +
       '<div class="table-wrap"><table><thead><tr>' +
       "<th>Timestamp</th><th>Agent</th><th>Name</th><th>Phone</th><th>State</th>" +
-      "<th>Company</th><th>Duration</th><th>Status</th><th>Payout ($)</th>" +
+      "<th>Company</th><th>Duration</th><th>Status</th><th>Payout ($)</th><th>Action</th>" +
       '</tr></thead><tbody id="tableBody"></tbody></table>' +
       '<div id="emptyState" class="empty-state hidden"><i class="ti ti-database-off"></i><div>No calls match your filters.</div></div>' +
       "</div></div>" +
-      '<div class="status-bar"><div><span class="status-dot"></span> Live · Auto sheet · Default &lt;120s = Non-Billable · Override available</div>' +
+      '<div class="status-bar"><div><span class="status-dot"></span> Live · Auto sheet · Edit freely → click Save to lock</div>' +
       '<div id="lastUpdated">Last updated: —</div></div>' +
       "</main>" +
       '<div class="toast" id="toast"></div>';
