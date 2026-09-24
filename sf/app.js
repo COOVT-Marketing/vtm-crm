@@ -10,8 +10,6 @@
 
   const BILLABLE_THRESHOLD_SECONDS = 120;
   const SESSION_KEY = "vtm_publisher_session";
-
-  // 🔹 CONFIG: Companies (lowercase) that should NOT see Total Payout & Avg Payout cards
   const COMPANIES_WITHOUT_PAYOUT = ["aikron"];
 
   const COL_MAP = {
@@ -295,10 +293,7 @@
         }
         return { ok: false, message: json.message || "Invalid username or password" };
       } catch (err2) {
-        return {
-          ok: false,
-          message: "Unable to reach login server."
-        };
+        return { ok: false, message: "Unable to reach login server." };
       }
     }
   }
@@ -511,7 +506,7 @@
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "publisher-export-" + new Date().toISOString().slice(0, 10) + ".csv";
+    a.download = "vtm-publisher-export-" + new Date().toISOString().slice(0, 10) + ".csv";
     a.click();
     URL.revokeObjectURL(url);
     showToast("CSV exported");
@@ -527,14 +522,17 @@
         '<div class="login-screen">' +
         '<div class="login-card">' +
         '<div class="login-brand">' +
-        "<h1>Publisher Portal</h1>" +
+        '<img src="logo.png" alt="Vocal Tech Marketing" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\'">' +
+        '<div class="brand-fallback" style="display:none;">VT</div>' +
+        "<h1>Vocal Tech Marketing</h1>" +
+        "<p>Publisher Portal</p>" +
         "</div>" +
         '<div class="login-error show" style="display:block;">' +
         "Missing company link.<br><br>" +
         "Please open your dedicated portal URL, for example:<br>" +
         "<strong>?company=YourCompany</strong>" +
         "</div>" +
-        '<div class="login-footer">Contact admin for your company login link.</div>' +
+        '<div class="login-footer">Contact VTM admin for your company login link.</div>' +
         "</div></div>";
       return;
     }
@@ -543,8 +541,10 @@
       '<div class="login-screen">' +
       '<div class="login-card">' +
       '<div class="login-brand">' +
-      "<h1>Publisher Portal</h1>" +
-      "<p><strong>" + escapeHtml(urlCompany) + "</strong></p>" +
+      '<img src="logo.png" alt="Vocal Tech Marketing" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\'">' +
+      '<div class="brand-fallback" style="display:none;">VT</div>' +
+      "<h1>Vocal Tech Marketing</h1>" +
+      "<p>Publisher Portal · <strong>" + escapeHtml(urlCompany) + "</strong></p>" +
       "</div>" +
       '<div class="login-error" id="loginError"></div>' +
       '<form id="loginForm">' +
@@ -560,7 +560,7 @@
       '<i class="ti ti-login"></i> Sign In' +
       "</button>" +
       "</form>" +
-      '<div class="login-footer">Contact admin if you need access credentials.</div>' +
+      '<div class="login-footer">Contact VTM admin if you need access credentials.</div>' +
       "</div></div>";
 
     $("#loginForm").addEventListener("submit", async function (e) {
@@ -606,7 +606,9 @@
       '<header class="header">' +
       '<div class="header-inner">' +
       '<div class="brand">' +
-      '<div class="brand-text"><h1>Publisher Portal</h1></div>' +
+      '<img src="logo.png" alt="Vocal Tech Marketing" id="logoImg" onerror="this.style.display=\'none\';document.getElementById(\'logoFallback\').style.display=\'grid\'">' +
+      '<div class="brand-fallback" id="logoFallback" style="display:none;">VT</div>' +
+      '<div class="brand-text"><h1>Vocal Tech Marketing</h1><span>Publisher Portal</span></div>' +
       "</div>" +
       '<div class="header-actions">' +
       '<span class="user-badge"><i class="ti ti-building"></i> ' + escapeHtml(companyName) +
@@ -697,6 +699,7 @@
     }
   }
 
+  // Start
   currentUser = loadSession();
   if (currentUser) {
     showDashboard();
