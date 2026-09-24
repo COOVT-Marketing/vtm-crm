@@ -527,6 +527,8 @@
         '<div class="login-screen">' +
         '<div class="login-card">' +
         '<div class="login-brand">' +
+        '<img src="logo.png" alt="Vocal Tech Marketing" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\'">' +
+        '<div class="brand-fallback" style="display:none;">VT</div>' +
         "<h1>Vocal Tech Marketing</h1>" +
         "<p>Publisher Portal</p>" +
         "</div>" +
@@ -544,6 +546,8 @@
       '<div class="login-screen">' +
       '<div class="login-card">' +
       '<div class="login-brand">' +
+      '<img src="logo.png" alt="Vocal Tech Marketing" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\'">' +
+      '<div class="brand-fallback" style="display:none;">VT</div>' +
       "<h1>Vocal Tech Marketing</h1>" +
       "<p>Publisher Portal · <strong>" + escapeHtml(urlCompany) + "</strong></p>" +
       "</div>" +
@@ -607,6 +611,8 @@
       '<header class="header">' +
       '<div class="header-inner">' +
       '<div class="brand">' +
+      '<img src="logo.png" alt="Vocal Tech Marketing" id="logoImg" onerror="this.style.display=\'none\';document.getElementById(\'logoFallback\').style.display=\'grid\'">' +
+      '<div class="brand-fallback" id="logoFallback" style="display:none;">VT</div>' +
       '<div class="brand-text"><h1>Vocal Tech Marketing</h1><span>Publisher Portal</span></div>' +
       "</div>" +
       '<div class="header-actions">' +
@@ -655,4 +661,53 @@
     });
     $("#searchInput") && $("#searchInput").addEventListener("input", debounce(applyFilters, 220));
     $("#filterBillable") && $("#filterBillable").addEventListener("change", applyFilters);
-    
+    $("#filterFrom") && $("#filterFrom").addEventListener("change", applyFilters);
+    $("#filterTo") && $("#filterTo").addEventListener("change", applyFilters);
+    $("#btnClearFilters") && $("#btnClearFilters").addEventListener("click", function () {
+      if ($("#searchInput")) $("#searchInput").value = "";
+      if ($("#filterBillable")) $("#filterBillable").value = "";
+      if ($("#filterFrom")) $("#filterFrom").value = "";
+      if ($("#filterTo")) $("#filterTo").value = "";
+      applyFilters();
+    });
+  }
+
+  function showDashboard() {
+    buildDashboardUI();
+    loadData();
+  }
+
+  async function loadData() {
+    const loading = $("#loading");
+    if (loading) loading.classList.remove("hidden");
+    try {
+      const data = await fetchSheetData();
+      rawData = applyCompanyFilter(data);
+      applyFilters();
+      showToast("Loaded " + rawData.length + " calls successfully");
+    } catch (err) {
+      const tbody = $("#tableBody");
+      const empty = $("#emptyState");
+      if (tbody) tbody.innerHTML = "";
+      if (empty) {
+        empty.classList.remove("hidden");
+        empty.innerHTML =
+          '<i class="ti ti-alert-triangle" style="color:var(--warning)"></i>' +
+          '<div style="margin-top:0.5rem;max-width:420px;margin-left:auto;margin-right:auto;">' +
+          "<strong>Unable to load call data</strong><br><br>" +
+          '<small style="color:var(--text-dim)">' + escapeHtml(err.message) + "</small></div>";
+      }
+      updateMetrics([]);
+      showToast("Failed to load data", 4000);
+    } finally {
+      if (loading) loading.classList.add("hidden");
+    }
+  }
+
+  currentUser = loadSession();
+  if (currentUser) {
+    showDashboard();
+  } else {
+    buildLoginUI();
+  }
+})();
