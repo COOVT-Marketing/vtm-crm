@@ -251,7 +251,6 @@
     }
   }
 
-  // ─── NEW: Single save that sends Status + Duration + Payout together ───
   async function saveCall(row, status, duration, payout) {
     try {
       const res = await fetch(APPS_SCRIPT_URL, {
@@ -483,14 +482,6 @@
     );
   }
 
-  function saveButtonHtml(row) {
-  if (isRowLocked(row)) {
-    return '';   // ← empty (no Locked badge)
-  }
-  return '<button class="btn btn-primary btn-save" data-id="' + row._id + '" style="padding:0.35rem 0.7rem;font-size:0.8rem;">' +
-    '<i class="ti ti-device-floppy"></i> Save</button>';
-}
-
   function durationInputHtml(row) {
     if (isRowLocked(row)) {
       return '<span title="Locked">' + formatDuration(row.duration) + "</span>";
@@ -510,7 +501,7 @@
 
   function saveButtonHtml(row) {
     if (isRowLocked(row)) {
-      return '<span class="badge" style="opacity:0.6;" title="Already saved & locked">Locked 🔒</span>';
+      return ''; // No Locked badge
     }
     return '<button class="btn btn-primary btn-save" data-id="' + row._id + '" style="padding:0.35rem 0.7rem;font-size:0.8rem;">' +
       '<i class="ti ti-device-floppy"></i> Save</button>';
@@ -563,7 +554,6 @@
         const newStatus = e.target.value;
         row.status = newStatus;
         row.statusOverride = newStatus;
-        // Force payout to 0 visually when non-billable/rejected
         if (newStatus === "nonbillable" || newStatus === "rejected") {
           const payoutInp = document.querySelector('.payout-input[data-id="' + id + '"]');
           if (payoutInp) {
@@ -619,7 +609,6 @@
                     rawData.find(function (r) { return r._id === id; });
         if (!row || isRowLocked(row)) return;
 
-        // Read current values from the inputs (in case user changed them)
         const statusSel = document.querySelector('.status-select[data-id="' + id + '"]');
         const durationInp = document.querySelector('.duration-input[data-id="' + id + '"]');
         const payoutInp = document.querySelector('.payout-input[data-id="' + id + '"]');
@@ -630,7 +619,6 @@
 
         if (status === "nonbillable" || status === "rejected") payout = 0;
 
-        // Update local state
         row.status = status;
         row.statusOverride = status;
         row.duration = duration;
