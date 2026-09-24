@@ -12,7 +12,6 @@
   const SESSION_KEY = "vtm_publisher_session";
 
   // 🔹 CONFIG: Companies (lowercase) that should NOT see Total Payout & Avg Payout cards
-  // Individual call payout column and CSV export remain visible for everyone
   const COMPANIES_WITHOUT_PAYOUT = ["aikron"];
 
   const COL_MAP = {
@@ -36,12 +35,11 @@
 
   let rawData = [];
   let filteredData = [];
-  let currentUser = null; // { company, username }
+  let currentUser = null;
 
   const $ = (s) => document.querySelector(s);
   const $$ = (s) => document.querySelectorAll(s);
 
-  // Check if current company should hide the Total/Avg Payout cards
   function shouldHidePayout() {
     const urlCompany = getCompanyFromUrl().toLowerCase();
     const sessionCompany = (currentUser && currentUser.company ? currentUser.company : "").toLowerCase();
@@ -254,7 +252,6 @@
       username: username.trim(),
       password: password
     };
-
     try {
       const res = await fetch(APPS_SCRIPT_URL, {
         method: "POST",
@@ -390,8 +387,6 @@
     });
   }
 
-  // Effective payout for a single call (still zero for non-billable / rejected)
-  // Individual call payouts are always shown – we only hide the summary cards
   function getEffectivePayout(row) {
     if (row.status === "nonbillable" || row.status === "rejected") return 0;
     return row.payout;
@@ -401,25 +396,20 @@
     const total = data.length;
     const billableRows = data.filter(function (r) { return r.status === "billable"; });
     const nonBillableRows = data.filter(function (r) { return r.status === "nonbillable"; });
-
     let sumPayout = 0;
     let sumDuration = 0;
     let durationCount = 0;
-
     billableRows.forEach(function (r) {
       sumPayout += getEffectivePayout(r);
     });
-
     data.forEach(function (r) {
       if (r.duration > 0) {
         sumDuration += r.duration;
         durationCount++;
       }
     });
-
     const avgPayout = billableRows.length ? sumPayout / billableRows.length : 0;
     const avgDuration = durationCount ? sumDuration / durationCount : null;
-
     const el = function (id) { return document.getElementById(id); };
     if (el("mTotalSales")) {
       el("mTotalSales").textContent = total.toLocaleString();
@@ -436,7 +426,6 @@
     const from = ($("#filterFrom") && $("#filterFrom").value) || "";
     const to = ($("#filterTo") && $("#filterTo").value) || "";
     const billableFilter = ($("#filterBillable") && $("#filterBillable").value) || "";
-
     filteredData = rawData.filter(function (r) {
       if (billableFilter && r.status !== billableFilter) return false;
       if (from || to) {
@@ -451,7 +440,6 @@
       }
       return true;
     });
-
     renderTable();
     updateMetrics(filteredData);
   }
@@ -469,11 +457,9 @@
     const empty = $("#emptyState");
     const countEl = $("#tableCount");
     if (!tbody) return;
-
     if (countEl) {
       countEl.textContent = filteredData.length + " call" + (filteredData.length !== 1 ? "s" : "");
     }
-
     if (!filteredData.length) {
       tbody.innerHTML = "";
       if (empty) empty.classList.remove("hidden");
@@ -481,7 +467,6 @@
     }
     if (empty) empty.classList.add("hidden");
 
-    // Always show the individual Payout column
     tbody.innerHTML = filteredData.map(function (r) {
       const payout = getEffectivePayout(r);
       const isNonBillable = r.status === "nonbillable" || r.status === "rejected";
@@ -503,10 +488,7 @@
       showToast("No data to export");
       return;
     }
-
-    // Always include the Payout column in the export
     const headers = ["Timestamp", "Phone", "State", "Duration (sec)", "Status", "Payout"];
-
     const lines = [headers.join(",")];
     filteredData.forEach(function (r) {
       const statusLabel =
@@ -520,7 +502,6 @@
         r.duration || "", statusLabel,
         getEffectivePayout(r).toFixed(2)
       ];
-
       const formattedRow = row.map(function (v) {
         return '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
       });
@@ -530,7 +511,7 @@
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "vtm-publisher-export-" + new Date().toISOString().slice(0, 10) + ".csv";
+    a.download = "publisher-export-" + new Date().toISOString().slice(0, 10) + ".csv";
     a.click();
     URL.revokeObjectURL(url);
     showToast("CSV exported");
@@ -539,7 +520,6 @@
   function buildLoginUI() {
     const root = document.getElementById("root");
     if (!root) return;
-
     const urlCompany = getCompanyFromUrl();
 
     if (!urlCompany) {
@@ -547,17 +527,14 @@
         '<div class="login-screen">' +
         '<div class="login-card">' +
         '<div class="login-brand">' +
-        // '<img src="logo1.png" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\'">' +
-        '<div class="brand-fallback" style="display:none;">VT</div>' +
-        "<h1></h1>" +
-        "<p>Publisher Portal</p>" +
+        "<h1>Publisher Portal</h1>" +
         "</div>" +
         '<div class="login-error show" style="display:block;">' +
         "Missing company link.<br><br>" +
         "Please open your dedicated portal URL, for example:<br>" +
-        "<strong>crm.vocaltechmarketing.com/publisher/?company=Leadzone</strong>" +
+        "<strong>?company=YourCompany</strong>" +
         "</div>" +
-        '<div class="login-footer">Contact VTM admin for your company login link.</div>' +
+        '<div class="login-footer">Contact admin for your company login link.</div>' +
         "</div></div>";
       return;
     }
@@ -566,10 +543,8 @@
       '<div class="login-screen">' +
       '<div class="login-card">' +
       '<div class="login-brand">' +
-      // '<img src="logo.png" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\'">' +
-      '<div class="brand-fallback" style="display:none;">VT</div>' +
-      "<h1></h1>" +
-      "<p>Publisher Portal · <strong>" + escapeHtml(urlCompany) + "</strong></p>" +
+      "<h1>Publisher Portal</h1>" +
+      "<p><strong>" + escapeHtml(urlCompany) + "</strong></p>" +
       "</div>" +
       '<div class="login-error" id="loginError"></div>' +
       '<form id="loginForm">' +
@@ -585,7 +560,7 @@
       '<i class="ti ti-login"></i> Sign In' +
       "</button>" +
       "</form>" +
-      '<div class="login-footer">Contact VTM admin if you need access credentials.</div>' +
+      '<div class="login-footer">Contact admin if you need access credentials.</div>' +
       "</div></div>";
 
     $("#loginForm").addEventListener("submit", async function (e) {
@@ -594,19 +569,15 @@
       const password = $("#loginPassword").value;
       const errEl = $("#loginError");
       const btn = $("#loginBtn");
-
       if (!username || !password) {
         errEl.textContent = "Please enter username and password.";
         errEl.classList.add("show");
         return;
       }
-
       errEl.classList.remove("show");
       btn.disabled = true;
       btn.innerHTML = '<i class="ti ti-loader"></i> Signing in…';
-
       const result = await attemptLogin(urlCompany, username, password);
-
       if (result.ok) {
         currentUser = { company: result.company, username: result.username };
         saveSession(result.company, result.username);
@@ -623,7 +594,6 @@
   function buildDashboardUI() {
     const root = document.getElementById("root");
     if (!root) return;
-
     const companyName = currentUser ? currentUser.company : "Publisher";
     const userName = currentUser ? currentUser.username : "";
     const hidePayoutCards = shouldHidePayout();
@@ -636,9 +606,7 @@
       '<header class="header">' +
       '<div class="header-inner">' +
       '<div class="brand">' +
-      // '<img src="logo1.png" alt="" id="logoImg" onerror="this.style.display=\'none\';document.getElementById(\'logoFallback\').style.display=\'grid\'">' +
-      '<div class="brand-fallback" id="logoFallback" style="display:none;">VT</div>' +
-      '<div class="brand-text"><h1></h1><span>Publisher Portal</span></div>' +
+      '<div class="brand-text"><h1>Publisher Portal</h1></div>' +
       "</div>" +
       '<div class="header-actions">' +
       '<span class="user-badge"><i class="ti ti-building"></i> ' + escapeHtml(companyName) +
@@ -705,12 +673,11 @@
   async function loadData() {
     const loading = $("#loading");
     if (loading) loading.classList.remove("hidden");
-
     try {
       const data = await fetchSheetData();
       rawData = applyCompanyFilter(data);
       applyFilters();
-      showToast("Loaded " + rawData.length + " calls successfully ");
+      showToast("Loaded " + rawData.length + " calls successfully");
     } catch (err) {
       const tbody = $("#tableBody");
       const empty = $("#emptyState");
