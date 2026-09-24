@@ -511,7 +511,7 @@
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "publisher-export-" + new Date().toISOString().slice(0, 10) + ".csv";
+    a.download = "vtm-publisher-export-" + new Date().toISOString().slice(0, 10) + ".csv";
     a.click();
     URL.revokeObjectURL(url);
     showToast("CSV exported");
@@ -527,14 +527,15 @@
         '<div class="login-screen">' +
         '<div class="login-card">' +
         '<div class="login-brand">' +
-        "<h1>Publisher Portal</h1>" +
+        "<h1>Vocal Tech Marketing</h1>" +
+        "<p>Publisher Portal</p>" +
         "</div>" +
         '<div class="login-error show" style="display:block;">' +
         "Missing company link.<br><br>" +
         "Please open your dedicated portal URL, for example:<br>" +
         "<strong>?company=YourCompany</strong>" +
         "</div>" +
-        '<div class="login-footer">Contact admin for your company login link.</div>' +
+        '<div class="login-footer">Contact VTM admin for your company login link.</div>' +
         "</div></div>";
       return;
     }
@@ -543,8 +544,8 @@
       '<div class="login-screen">' +
       '<div class="login-card">' +
       '<div class="login-brand">' +
-      "<h1>Publisher Portal</h1>" +
-      "<p><strong>" + escapeHtml(urlCompany) + "</strong></p>" +
+      "<h1>Vocal Tech Marketing</h1>" +
+      "<p>Publisher Portal · <strong>" + escapeHtml(urlCompany) + "</strong></p>" +
       "</div>" +
       '<div class="login-error" id="loginError"></div>' +
       '<form id="loginForm">' +
@@ -560,7 +561,7 @@
       '<i class="ti ti-login"></i> Sign In' +
       "</button>" +
       "</form>" +
-      '<div class="login-footer">Contact admin if you need access credentials.</div>' +
+      '<div class="login-footer">Contact VTM admin if you need access credentials.</div>' +
       "</div></div>";
 
     $("#loginForm").addEventListener("submit", async function (e) {
@@ -606,7 +607,7 @@
       '<header class="header">' +
       '<div class="header-inner">' +
       '<div class="brand">' +
-      '<div class="brand-text"><h1>Publisher Portal</h1></div>' +
+      '<div class="brand-text"><h1>Vocal Tech Marketing</h1><span>Publisher Portal</span></div>' +
       "</div>" +
       '<div class="header-actions">' +
       '<span class="user-badge"><i class="ti ti-building"></i> ' + escapeHtml(companyName) +
@@ -654,53 +655,4 @@
     });
     $("#searchInput") && $("#searchInput").addEventListener("input", debounce(applyFilters, 220));
     $("#filterBillable") && $("#filterBillable").addEventListener("change", applyFilters);
-    $("#filterFrom") && $("#filterFrom").addEventListener("change", applyFilters);
-    $("#filterTo") && $("#filterTo").addEventListener("change", applyFilters);
-    $("#btnClearFilters") && $("#btnClearFilters").addEventListener("click", function () {
-      if ($("#searchInput")) $("#searchInput").value = "";
-      if ($("#filterBillable")) $("#filterBillable").value = "";
-      if ($("#filterFrom")) $("#filterFrom").value = "";
-      if ($("#filterTo")) $("#filterTo").value = "";
-      applyFilters();
-    });
-  }
-
-  function showDashboard() {
-    buildDashboardUI();
-    loadData();
-  }
-
-  async function loadData() {
-    const loading = $("#loading");
-    if (loading) loading.classList.remove("hidden");
-    try {
-      const data = await fetchSheetData();
-      rawData = applyCompanyFilter(data);
-      applyFilters();
-      showToast("Loaded " + rawData.length + " calls successfully");
-    } catch (err) {
-      const tbody = $("#tableBody");
-      const empty = $("#emptyState");
-      if (tbody) tbody.innerHTML = "";
-      if (empty) {
-        empty.classList.remove("hidden");
-        empty.innerHTML =
-          '<i class="ti ti-alert-triangle" style="color:var(--warning)"></i>' +
-          '<div style="margin-top:0.5rem;max-width:420px;margin-left:auto;margin-right:auto;">' +
-          "<strong>Unable to load call data</strong><br><br>" +
-          '<small style="color:var(--text-dim)">' + escapeHtml(err.message) + "</small></div>";
-      }
-      updateMetrics([]);
-      showToast("Failed to load data", 4000);
-    } finally {
-      if (loading) loading.classList.add("hidden");
-    }
-  }
-
-  currentUser = loadSession();
-  if (currentUser) {
-    showDashboard();
-  } else {
-    buildLoginUI();
-  }
-})();
+    
