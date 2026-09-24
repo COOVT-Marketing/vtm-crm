@@ -471,7 +471,7 @@
     if (isRowLocked(row)) {
       const label = s === "billable" ? "Billable" : s === "nonbillable" ? "Non-Billable" : s === "rejected" ? "Rejected" : "Pending";
       const cls = s === "billable" ? "badge-billable" : s === "nonbillable" ? "badge-nonbillable" : s === "rejected" ? "badge-rejected" : "badge-pending";
-      return '<span class="badge ' + cls + '" title="Locked — already saved">' + label + " 🔒</span>";
+      return '<span class="badge ' + cls + '">' + label + '</span>';
     }
     return (
       '<select class="status-select ' + s + '" data-id="' + row._id + '">' +
@@ -482,6 +482,14 @@
       "</select>"
     );
   }
+
+  function saveButtonHtml(row) {
+  if (isRowLocked(row)) {
+    return '';   // ← empty (no Locked badge)
+  }
+  return '<button class="btn btn-primary btn-save" data-id="' + row._id + '" style="padding:0.35rem 0.7rem;font-size:0.8rem;">' +
+    '<i class="ti ti-device-floppy"></i> Save</button>';
+}
 
   function durationInputHtml(row) {
     if (isRowLocked(row)) {
