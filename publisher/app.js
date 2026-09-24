@@ -32,11 +32,16 @@
 
   let rawData = [];
   let filteredData = [];
-  let localPayouts = {};
   let currentUser = null; // { company, username }
 
   const $ = (s) => document.querySelector(s);
   const $$ = (s) => document.querySelectorAll(s);
+
+  // Check if current company should hide payout
+  function shouldHidePayout() {
+    if (!currentUser || !currentUser.company) return false;
+    return currentUser.company.toLowerCase() === "aikron";
+  }
 
   function showToast(msg, duration = 2800) {
     const t = $("#toast");
@@ -109,8 +114,6 @@
     return "$" + Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
-
-  /** Parse sheet timestamp as Pakistan Standard Time (UTC+5) → Date (UTC) */
   function parseSheetTimestamp(str) {
     if (!str) return null;
     const s = String(str).trim();
@@ -120,14 +123,12 @@
       const d = new Date(s);
       return isNaN(d.getTime()) ? null : d;
     }
-    // YYYY-MM-DD HH:MM:SS or YYYY/MM/DD
     let parts = s.match(/(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})(?:[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
     if (parts) {
       const y = +parts[1], mo = +parts[2] - 1, day = +parts[3];
       const h = +(parts[4] || 0), mi = +(parts[5] || 0), sec = +(parts[6] || 0);
-      return new Date(Date.UTC(y, mo, day, h - 5, mi, sec)); // PKT → UTC
+      return new Date(Date.UTC(y, mo, day, h - 5, mi, sec));
     }
-    // DD/MM/YYYY HH:MM:SS
     parts = s.match(/(\d{1,2})[\/](\d{1,2})[\/](\d{4})(?:[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
     if (parts) {
       const day = +parts[1], mo = +parts[2] - 1, y = +parts[3];
@@ -138,7 +139,6 @@
     return isNaN(d.getTime()) ? null : d;
   }
 
-  /** Calendar date YYYY-MM-DD in US Eastern (for date filters) */
   function getEasternDateKey(str) {
     const d = parseSheetTimestamp(str);
     if (!d) return "";
@@ -209,20 +209,17 @@
     };
   }
 
-  /** Company from URL: ?company=Leadzone */
   function getCompanyFromUrl() {
     const p = new URLSearchParams(window.location.search);
     return (p.get("company") || "").trim();
   }
 
-  // ─── SESSION ──────────────────────────────────────────────────
   function loadSession() {
     try {
       const raw = sessionStorage.getItem(SESSION_KEY);
       if (!raw) return null;
       const data = JSON.parse(raw);
       if (!data || !data.company || !data.username) return null;
-      // Session must match the company in the URL
       const urlCompany = getCompanyFromUrl();
       if (urlCompany && data.company.toLowerCase() !== urlCompany.toLowerCase()) {
         clearSession();
@@ -245,7 +242,6 @@
     sessionStorage.removeItem(SESSION_KEY);
   }
 
-  // ─── AUTH ─────────────────────────────────────────────────────
   async function attemptLogin(company, username, password) {
     const payload = {
       submissionType: "PUBLISHER_LOGIN",
@@ -275,7 +271,6 @@
       }
       return { ok: false, message: json.message || "Invalid username or password" };
     } catch (err) {
-      console.warn("CORS login failed, trying GET…", err.message);
       try {
         const url =
           APPS_SCRIPT_URL +
@@ -298,24 +293,19 @@
         }
         return { ok: false, message: json.message || "Invalid username or password" };
       } catch (err2) {
-        console.error(err2);
         return {
           ok: false,
-          message: "Unable to reach login server. Check Apps Script deployment (Execute as: Me, Who has access: Anyone)."
+          message: "Unable to reach login server."
         };
       }
     }
   }
 
-  // ─── DATA FETCH ───────────────────────────────────────────────
   async function fetchSheetData() {
     try {
       const res = await fetch(CSV_URL, { cache: "no-store" });
       if (!res.ok) throw new Error("CSV fetch failed");
       const text = await res.text();
-      if (text.trim().startsWith("<!DOCTYPE") || text.includes("Sign in")) {
-        throw new Error("Sheet is not publicly accessible");
-      }
       const rows = parseCSV(text);
       if (rows.length < 2) return [];
       const headers = rows[0];
@@ -346,13 +336,10 @@
         return r.timestamp || r.phone || r.firstName || r.agent;
       });
     } catch (err) {
-      console.warn("CSV failed, trying JSON…", err.message);
       const res = await fetch(JSON_URL, { cache: "no-store" });
       const text = await res.text();
       const match = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]+)\)/);
-      if (!match) {
-        throw new Error("Unable to parse sheet response. Make sure the sheet is shared publicly (Anyone with the link → Viewer).");
-      }
+      if (!match) throw new Error("Unable to parse sheet response.");
       const obj = JSON.parse(match[1]);
       const table = obj.table;
       const headers = table.cols.map(function (c) { return c.label || ""; });
@@ -399,7 +386,7 @@
   }
 
   function getEffectivePayout(row) {
-    // Non-billable always $0; payout is read-only from sheet (admin only)
+    if (shouldHidePayout()) return 0;
     if (row.status === "nonbillable" || row.status === "rejected") return 0;
     return row.payout;
   }
@@ -488,6 +475,8 @@
     }
     if (empty) empty.classList.add("hidden");
 
+    const hidePayout = shouldHidePayout();
+
     tbody.innerHTML = filteredData.map(function (r) {
       const payout = getEffectivePayout(r);
       const isNonBillable = r.status === "nonbillable" || r.status === "rejected";
@@ -498,7 +487,7 @@
         "<td>" + (escapeHtml(r.state) || "—") + "</td>" +
         "<td>" + formatDuration(r.duration) + "</td>" +
         "<td>" + billableBadge(r.status) + "</td>" +
-        '<td class="payout-cell">' + formatCurrency(payout) + "</td>" +
+        (hidePayout ? "" : '<td class="payout-cell">' + formatCurrency(payout) + "</td>") +
         "</tr>"
       );
     }).join("");
@@ -509,9 +498,11 @@
       showToast("No data to export");
       return;
     }
-    const headers = [
-      "Timestamp", "Phone", "State", "Duration (sec)", "Status", "Payout"
-    ];
+    const hidePayout = shouldHidePayout();
+    const headers = hidePayout ? 
+      ["Timestamp", "Phone", "State", "Duration (sec)", "Status"] : 
+      ["Timestamp", "Phone", "State", "Duration (sec)", "Status", "Payout"];
+
     const lines = [headers.join(",")];
     filteredData.forEach(function (r) {
       const statusLabel =
@@ -519,14 +510,20 @@
         r.status === "nonbillable" ? "Non-Billable" :
         r.status === "rejected" ? "Rejected" :
         r.status === "pending" ? "Pending" : "Unknown";
-      const row = [
+      
+      const row = hidePayout ? [
+        r.timestamp, r.phone, r.state,
+        r.duration || "", statusLabel
+      ] : [
         r.timestamp, r.phone, r.state,
         r.duration || "", statusLabel,
         getEffectivePayout(r).toFixed(2)
-      ].map(function (v) {
+      ];
+
+      const formattedRow = row.map(function (v) {
         return '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
       });
-      lines.push(row.join(","));
+      lines.push(formattedRow.join(","));
     });
     const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -538,14 +535,12 @@
     showToast("CSV exported");
   }
 
-  // ─── LOGIN UI ─────────────────────────────────────────────────
   function buildLoginUI() {
     const root = document.getElementById("root");
     if (!root) return;
 
     const urlCompany = getCompanyFromUrl();
 
-    // No company in URL → show guidance
     if (!urlCompany) {
       root.innerHTML =
         '<div class="login-screen">' +
@@ -624,13 +619,13 @@
     });
   }
 
-  // ─── DASHBOARD UI ─────────────────────────────────────────────
   function buildDashboardUI() {
     const root = document.getElementById("root");
     if (!root) return;
 
     const companyName = currentUser ? currentUser.company : "Publisher";
     const userName = currentUser ? currentUser.username : "";
+    const hidePayout = shouldHidePayout();
 
     root.innerHTML =
       '<div id="loading" class="loading-overlay hidden">' +
@@ -654,8 +649,8 @@
       '<main class="container">' +
       '<div class="metrics">' +
       '<div class="metric-card"><div class="metric-label"><i class="ti ti-chart-bar"></i> Total Calls</div><div class="metric-value" id="mTotalSales">—</div><div class="metric-sub">Billable · Rejected</div></div>' +
-      '<div class="metric-card"><div class="metric-label"><i class="ti ti-currency-dollar"></i> Total Payout</div><div class="metric-value" id="mTotalPayout">—</div><div class="metric-sub">Billable calls only</div></div>' +
-      '<div class="metric-card"><div class="metric-label"><i class="ti ti-calculator"></i> Avg Payout</div><div class="metric-value" id="mAvgPayout">—</div><div class="metric-sub">Per billable call</div></div>' +
+      (hidePayout ? "" : '<div class="metric-card"><div class="metric-label"><i class="ti ti-currency-dollar"></i> Total Payout</div><div class="metric-value" id="mTotalPayout">—</div><div class="metric-sub">Billable calls only</div></div>') +
+      (hidePayout ? "" : '<div class="metric-card"><div class="metric-label"><i class="ti ti-calculator"></i> Avg Payout</div><div class="metric-value" id="mAvgPayout">—</div><div class="metric-sub">Per billable call</div></div>') +
       '<div class="metric-card"><div class="metric-label"><i class="ti ti-clock"></i> Avg Duration</div><div class="metric-value" id="mAvgDuration">—</div><div class="metric-sub">All calls</div></div>' +
       "</div>" +
       '<div class="filters">' +
@@ -674,7 +669,8 @@
       '<div class="table-card">' +
       '<div class="table-header"><h2>Call Records — ' + escapeHtml(companyName) + '</h2><span class="table-count" id="tableCount">0 records</span></div>' +
       '<div class="table-wrap"><table><thead><tr>' +
-      "<th>Timestamp</th><th>Phone</th><th>State</th><th>Duration</th><th>Status</th><th>Payout ($)</th>" +
+      "<th>Timestamp</th><th>Phone</th><th>State</th><th>Duration</th><th>Status</th>" +
+      (hidePayout ? "" : "<th>Payout ($)</th>") +
       '</tr></thead><tbody id="tableBody"></tbody></table>' +
       '<div id="emptyState" class="empty-state hidden"><i class="ti ti-database-off"></i><div>No calls match your filters.</div></div>' +
       "</div></div>" +
@@ -714,11 +710,8 @@
       const data = await fetchSheetData();
       rawData = applyCompanyFilter(data);
       applyFilters();
-      const lu = $("#lastUpdated");
-      if (lu) lu.textContent = "Last updated: " + new Date().toLocaleString();
       showToast("Loaded " + rawData.length + " calls successfully ");
     } catch (err) {
-      console.error(err);
       const tbody = $("#tableBody");
       const empty = $("#emptyState");
       if (tbody) tbody.innerHTML = "";
@@ -728,18 +721,15 @@
           '<i class="ti ti-alert-triangle" style="color:var(--warning)"></i>' +
           '<div style="margin-top:0.5rem;max-width:420px;margin-left:auto;margin-right:auto;">' +
           "<strong>Unable to load call data</strong><br><br>" +
-          "Make sure the Google Sheet is shared as<br>" +
-          "<em>“Anyone with the link → Viewer”</em><br><br>" +
           '<small style="color:var(--text-dim)">' + escapeHtml(err.message) + "</small></div>";
       }
       updateMetrics([]);
-      showToast("Failed to load data – check sheet permissions", 4000);
+      showToast("Failed to load data", 4000);
     } finally {
       if (loading) loading.classList.add("hidden");
     }
   }
 
-  // Boot
   currentUser = loadSession();
   if (currentUser) {
     showDashboard();
