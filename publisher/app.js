@@ -11,6 +11,9 @@
   const BILLABLE_THRESHOLD_SECONDS = 120;
   const SESSION_KEY = "vtm_publisher_session";
 
+  // 🔹 FUTURE CONFIG: Jis company ka payout chupana ho, yahan array mein add karte jao! (lowercase mein)
+  const COMPANIES_WITHOUT_PAYOUT = ["aikron"];
+
   const COL_MAP = {
     timestamp: ["timestamp", "date", "time"],
     agent: ["agent name", "agent", "agentname"],
@@ -37,10 +40,11 @@
   const $ = (s) => document.querySelector(s);
   const $$ = (s) => document.querySelectorAll(s);
 
-  // Check if current company should hide payout
+  // Check if current company should hide payout dynamically from the list
   function shouldHidePayout() {
-    if (!currentUser || !currentUser.company) return false;
-    return currentUser.company.toLowerCase() === "aikron";
+    const urlCompany = getCompanyFromUrl().toLowerCase();
+    const sessionCompany = (currentUser && currentUser.company ? currentUser.company : "").toLowerCase();
+    return COMPANIES_WITHOUT_PAYOUT.includes(urlCompany) || COMPANIES_WITHOUT_PAYOUT.includes(sessionCompany);
   }
 
   function showToast(msg, duration = 2800) {
@@ -635,7 +639,7 @@
       '<header class="header">' +
       '<div class="header-inner">' +
       '<div class="brand">' +
-      '<img src="logo.png" alt="Vocal Tech Marketing" id="logoImg" onerror="this.style.display=\'none\';document.getElementById(\'logoFallback\').style.display=\'grid\'">' +
+      '<img src="logo.png" alt="Vocal Tech Marketing" id="logoImg" onerror="this.style.display=\'none\';document.getElementById(\'logoFallback\'].style.display=\'grid\'">' +
       '<div class="brand-fallback" id="logoFallback" style="display:none;">VT</div>' +
       '<div class="brand-text"><h1>Vocal Tech Marketing</h1><span>Publisher Portal</span></div>' +
       "</div>" +
