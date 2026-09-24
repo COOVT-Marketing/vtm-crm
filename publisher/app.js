@@ -547,9 +547,9 @@
         '<div class="login-screen">' +
         '<div class="login-card">' +
         '<div class="login-brand">' +
-        '<img src="logo.png" alt="Vocal Tech Marketing" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\'">' +
+        // '<img src="logo1.png" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\'">' +
         '<div class="brand-fallback" style="display:none;">VT</div>' +
-        "<h1>Vocal Tech Marketing</h1>" +
+        "<h1></h1>" +
         "<p>Publisher Portal</p>" +
         "</div>" +
         '<div class="login-error show" style="display:block;">' +
@@ -566,9 +566,9 @@
       '<div class="login-screen">' +
       '<div class="login-card">' +
       '<div class="login-brand">' +
-      '<img src="logo.png" alt="Vocal Tech Marketing" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\'">' +
+      // '<img src="logo.png" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\'">' +
       '<div class="brand-fallback" style="display:none;">VT</div>' +
-      "<h1>Vocal Tech Marketing</h1>" +
+      "<h1></h1>" +
       "<p>Publisher Portal · <strong>" + escapeHtml(urlCompany) + "</strong></p>" +
       "</div>" +
       '<div class="login-error" id="loginError"></div>' +
@@ -636,9 +636,9 @@
       '<header class="header">' +
       '<div class="header-inner">' +
       '<div class="brand">' +
-      '<img src="logo.png" alt="Vocal Tech Marketing" id="logoImg" onerror="this.style.display=\'none\';document.getElementById(\'logoFallback\').style.display=\'grid\'">' +
+      // '<img src="logo1.png" alt="" id="logoImg" onerror="this.style.display=\'none\';document.getElementById(\'logoFallback\').style.display=\'grid\'">' +
       '<div class="brand-fallback" id="logoFallback" style="display:none;">VT</div>' +
-      '<div class="brand-text"><h1>Vocal Tech Marketing</h1><span>Publisher Portal</span></div>' +
+      '<div class="brand-text"><h1></h1><span>Publisher Portal</span></div>' +
       "</div>" +
       '<div class="header-actions">' +
       '<span class="user-badge"><i class="ti ti-building"></i> ' + escapeHtml(companyName) +
