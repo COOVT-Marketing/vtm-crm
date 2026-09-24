@@ -11,6 +11,8 @@
   const BILLABLE_THRESHOLD_SECONDS = 120;
   const SESSION_KEY = "vtm_publisher_session";
 
+  // 🔹 CONFIG: Companies (lowercase) that should NOT see Total Payout & Avg Payout cards
+  // Individual call payout column and CSV export remain visible for everyone
   const COMPANIES_WITHOUT_PAYOUT = ["aikron"];
 
   const COL_MAP = {
@@ -39,7 +41,7 @@
   const $ = (s) => document.querySelector(s);
   const $$ = (s) => document.querySelectorAll(s);
 
-  // Check if current company should hide payout (from URL or session)
+  // Check if current company should hide the Total/Avg Payout cards
   function shouldHidePayout() {
     const urlCompany = getCompanyFromUrl().toLowerCase();
     const sessionCompany = (currentUser && currentUser.company ? currentUser.company : "").toLowerCase();
@@ -388,8 +390,9 @@
     });
   }
 
+  // Effective payout for a single call (still zero for non-billable / rejected)
+  // Individual call payouts are always shown – we only hide the summary cards
   function getEffectivePayout(row) {
-    if (shouldHidePayout()) return 0;
     if (row.status === "nonbillable" || row.status === "rejected") return 0;
     return row.payout;
   }
@@ -478,8 +481,7 @@
     }
     if (empty) empty.classList.add("hidden");
 
-    const hidePayout = shouldHidePayout();
-
+    // Always show the individual Payout column
     tbody.innerHTML = filteredData.map(function (r) {
       const payout = getEffectivePayout(r);
       const isNonBillable = r.status === "nonbillable" || r.status === "rejected";
@@ -490,7 +492,7 @@
         "<td>" + (escapeHtml(r.state) || "—") + "</td>" +
         "<td>" + formatDuration(r.duration) + "</td>" +
         "<td>" + billableBadge(r.status) + "</td>" +
-        (hidePayout ? "" : '<td class="payout-cell">' + formatCurrency(payout) + "</td>") +
+        '<td class="payout-cell">' + formatCurrency(payout) + "</td>" +
         "</tr>"
       );
     }).join("");
@@ -501,10 +503,9 @@
       showToast("No data to export");
       return;
     }
-    const hidePayout = shouldHidePayout();
-    const headers = hidePayout ? 
-      ["Timestamp", "Phone", "State", "Duration (sec)", "Status"] : 
-      ["Timestamp", "Phone", "State", "Duration (sec)", "Status", "Payout"];
+
+    // Always include the Payout column in the export
+    const headers = ["Timestamp", "Phone", "State", "Duration (sec)", "Status", "Payout"];
 
     const lines = [headers.join(",")];
     filteredData.forEach(function (r) {
@@ -514,10 +515,7 @@
         r.status === "rejected" ? "Rejected" :
         r.status === "pending" ? "Pending" : "Unknown";
       
-      const row = hidePayout ? [
-        r.timestamp, r.phone, r.state,
-        r.duration || "", statusLabel
-      ] : [
+      const row = [
         r.timestamp, r.phone, r.state,
         r.duration || "", statusLabel,
         getEffectivePayout(r).toFixed(2)
@@ -628,7 +626,7 @@
 
     const companyName = currentUser ? currentUser.company : "Publisher";
     const userName = currentUser ? currentUser.username : "";
-    const hidePayout = shouldHidePayout();
+    const hidePayoutCards = shouldHidePayout();
 
     root.innerHTML =
       '<div id="loading" class="loading-overlay hidden">' +
@@ -652,8 +650,8 @@
       '<main class="container">' +
       '<div class="metrics">' +
       '<div class="metric-card"><div class="metric-label"><i class="ti ti-chart-bar"></i> Total Calls</div><div class="metric-value" id="mTotalSales">—</div><div class="metric-sub">Billable · Rejected</div></div>' +
-      (hidePayout ? "" : '<div class="metric-card"><div class="metric-label"><i class="ti ti-currency-dollar"></i> Total Payout</div><div class="metric-value" id="mTotalPayout">—</div><div class="metric-sub">Billable calls only</div></div>') +
-      (hidePayout ? "" : '<div class="metric-card"><div class="metric-label"><i class="ti ti-calculator"></i> Avg Payout</div><div class="metric-value" id="mAvgPayout">—</div><div class="metric-sub">Per billable call</div></div>') +
+      (hidePayoutCards ? "" : '<div class="metric-card"><div class="metric-label"><i class="ti ti-currency-dollar"></i> Total Payout</div><div class="metric-value" id="mTotalPayout">—</div><div class="metric-sub">Billable calls only</div></div>') +
+      (hidePayoutCards ? "" : '<div class="metric-card"><div class="metric-label"><i class="ti ti-calculator"></i> Avg Payout</div><div class="metric-value" id="mAvgPayout">—</div><div class="metric-sub">Per billable call</div></div>') +
       '<div class="metric-card"><div class="metric-label"><i class="ti ti-clock"></i> Avg Duration</div><div class="metric-value" id="mAvgDuration">—</div><div class="metric-sub">All calls</div></div>' +
       "</div>" +
       '<div class="filters">' +
@@ -672,8 +670,7 @@
       '<div class="table-card">' +
       '<div class="table-header"><h2>Call Records — ' + escapeHtml(companyName) + '</h2><span class="table-count" id="tableCount">0 records</span></div>' +
       '<div class="table-wrap"><table><thead><tr>' +
-      "<th>Timestamp</th><th>Phone</th><th>State</th><th>Duration</th><th>Status</th>" +
-      (hidePayout ? "" : "<th>Payout ($)</th>") +
+      "<th>Timestamp</th><th>Phone</th><th>State</th><th>Duration</th><th>Status</th><th>Payout ($)</th>" +
       '</tr></thead><tbody id="tableBody"></tbody></table>' +
       '<div id="emptyState" class="empty-state hidden"><i class="ti ti-database-off"></i><div>No calls match your filters.</div></div>' +
       "</div></div>" +
