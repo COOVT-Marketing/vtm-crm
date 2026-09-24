@@ -10,8 +10,6 @@
 
   const BILLABLE_THRESHOLD_SECONDS = 120;
   const SESSION_KEY = "vtm_publisher_session";
-
-  // 🔹 CONFIG: Companies (lowercase) that should NOT see Total Payout & Avg Payout cards
   const COMPANIES_WITHOUT_PAYOUT = ["aikron"];
 
   const COL_MAP = {
@@ -295,10 +293,7 @@
         }
         return { ok: false, message: json.message || "Invalid username or password" };
       } catch (err2) {
-        return {
-          ok: false,
-          message: "Unable to reach login server."
-        };
+        return { ok: false, message: "Unable to reach login server." };
       }
     }
   }
@@ -704,6 +699,7 @@
     }
   }
 
+  // Start
   currentUser = loadSession();
   if (currentUser) {
     showDashboard();
