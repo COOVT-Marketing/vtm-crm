@@ -30,8 +30,6 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg)
 .btn-invoice:hover{background:#467373}
 .btn-toggle{background:transparent;color:var(--accent);border:1px solid var(--border);padding:7px 14px;font-size:12.5px;font-weight:500;border-radius:var(--radius-sm);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .btn-toggle:hover{background:var(--accent-soft);border-color:var(--accent)}
-.payout-hidden{filter:blur(7px);transition:filter .25s ease;cursor:pointer;user-select:none}
-.payout-hidden:hover{filter:blur(0)}
 .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
 table{width:100%;border-collapse:collapse}
 thead tr{background:var(--surface2)}
@@ -547,8 +545,8 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
       const tr = document.createElement("tr");
       tr.innerHTML = `<td class="font-medium">${s.state}</td>
         <td style="color:var(--muted)">${s.calls}</td>
-        <td><span class="payout-hidden" style="color:var(--gold)">$${s.totalPayout.toFixed(2)}</span></td>
-        <td class="font-medium"><span class="payout-hidden" style="color:var(--gold)">$${s.avgBid.toFixed(2)}</span></td>`;
+        <td style="color:var(--gold)">$${s.totalPayout.toFixed(2)}</td>
+        <td class="font-medium" style="color:var(--gold)">$${s.avgBid.toFixed(2)}</td>`;
       tb.appendChild(tr);
     });
   }
@@ -572,7 +570,7 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
         <td class="font-mono">${r.ani || "—"}</td>
         <td style="color:var(--muted)">${r.state || "—"}</td>
         <td style="color:var(--muted)">${r.call_duration_sec || "—"}s</td>
-        <td class="font-medium"><span class="payout-hidden" style="color:var(--gold)">$${p.toFixed(2)}</span></td>
+        <td class="font-medium" style="color:var(--gold)">$${p.toFixed(2)}</td>
         <td>${st}</td>`;
       tb.appendChild(tr);
     });
@@ -595,7 +593,7 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
       }
       const tr = document.createElement("tr");
       tr.innerHTML = `<td>${m || "—"}</td>
-        <td class="font-medium"><span class="payout-hidden" style="color:var(--gold)">$${Number(r.total_payout || 0).toFixed(2)}</span></td>
+        <td class="font-medium" style="color:var(--gold)">$${Number(r.total_payout || 0).toFixed(2)}</td>
         <td style="color:var(--muted)">${r.total_calls || "—"}</td>`;
       tb.appendChild(tr);
     });
@@ -845,9 +843,9 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
       <div id="a8" class="space-y-5 fade-in">
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
           <div class="metric"><div class="metric-label">Total Calls</div><div id="a9" class="metric-value">—</div></div>
-          <div class="metric"><div class="metric-label">Total Payout</div><div id="aa" class="metric-value payout-hidden" style="color:var(--gold)">—</div></div>
+          <div class="metric"><div class="metric-label">Total Payout</div><div id="aa" class="metric-value" style="color:var(--gold)">—</div></div>
           <div class="metric"><div class="metric-label">Avg Duration</div><div id="ab" class="metric-value">— <span class="unit">sec</span></div></div>
-          <div class="metric"><div class="metric-label">Avg Payout</div><div id="ac" class="metric-value payout-hidden" style="color:var(--gold)">—</div></div>
+          <div class="metric"><div class="metric-label">Avg Payout</div><div id="ac" class="metric-value" style="color:var(--gold)">—</div></div>
         </div>
         <div>
           <button id="aToggle" onclick="toggleExtra()" class="btn-toggle">
@@ -855,8 +853,8 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
             <svg id="aChevron" class="w-3.5 h-3.5 chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M19 9l-7 7-7-7"/></svg>
           </button>
           <div id="aExtra" class="extra-metrics">
-            <div class="metric"><div class="metric-label">Lowest Bid</div><div id="ad" class="metric-value payout-hidden" style="color:var(--gold)">—</div></div>
-            <div class="metric"><div class="metric-label">Highest Bid</div><div id="ae" class="metric-value payout-hidden" style="color:var(--gold)">—</div></div>
+            <div class="metric"><div class="metric-label">Lowest Bid</div><div id="ad" class="metric-value" style="color:var(--gold)">—</div></div>
+            <div class="metric"><div class="metric-label">Highest Bid</div><div id="ae" class="metric-value" style="color:var(--gold)">—</div></div>
           </div>
         </div>
         <div class="card p-4">
@@ -940,8 +938,8 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
           <div class="metric"><div class="metric-label">Total Calls</div><div id="an" class="metric-value">—</div></div>
           <div class="metric"><div class="metric-label">Billable Calls</div><div id="ao" class="metric-value" style="color:var(--accent)">—</div></div>
           <div class="metric"><div class="metric-label">Non-Billable Calls</div><div id="ap" class="metric-value" style="color:var(--muted)">—</div></div>
-          <div class="metric"><div class="metric-label">Total Payout</div><div id="anTotal" class="metric-value payout-hidden" style="color:var(--gold)">—</div></div>
-          <div class="metric"><div class="metric-label">Avg Payout</div><div id="anAvg" class="metric-value payout-hidden" style="color:var(--gold)">—</div></div>
+          <div class="metric"><div class="metric-label">Total Payout</div><div id="anTotal" class="metric-value" style="color:var(--gold)">—</div></div>
+          <div class="metric"><div class="metric-label">Avg Payout</div><div id="anAvg" class="metric-value" style="color:var(--gold)">—</div></div>
         </div>
         <div class="stat-cards">
           <div class="metric">
