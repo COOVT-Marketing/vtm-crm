@@ -299,18 +299,14 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
   function normState(c) {
     return ((c.state || "Unknown").toString().trim().toUpperCase()) || "UNKNOWN";
   }
-  // A single Date wins over From/To. If From is after To, they are swapped.
+  // If From is after To, they are swapped.
   function getAnalyticsRange() {
-    const day = document.getElementById("anDate").value;
     let from = document.getElementById("anFrom").value;
     let to = document.getElementById("anTo").value;
-    if (day) {
-      from = day;
-      to = day;
-    } else if (from && to && from > to) {
+    if (from && to && from > to) {
       const t = from; from = to; to = t;
     }
-    return { day, from, to };
+    return { from, to };
   }
   function getAnalyticsFiltered() {
     const { from, to } = getAnalyticsRange();
@@ -332,21 +328,10 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
       states.map(s => `<option value="${s}">${s}</option>`).join("");
     sel.value = states.includes(current) ? current : "all";
   }
-  function onAnDate() {
-    if (document.getElementById("anDate").value) {
-      document.getElementById("anFrom").value = "";
-      document.getElementById("anTo").value = "";
-    }
-    renderAnalytics();
-  }
   function onAnRange() {
-    if (document.getElementById("anFrom").value || document.getElementById("anTo").value) {
-      document.getElementById("anDate").value = "";
-    }
     renderAnalytics();
   }
   function clearAnalyticsFilters() {
-    document.getElementById("anDate").value = "";
     document.getElementById("anFrom").value = "";
     document.getElementById("anTo").value = "";
     document.getElementById("anState").value = "all";
@@ -497,11 +482,10 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
     document.getElementById("ap").textContent = n;
     document.getElementById("anTotal").textContent = "$" + tp.toFixed(2);
     document.getElementById("anAvg").textContent = "$" + (rows.length ? tp / rows.length : 0).toFixed(2);
-    const { day, from, to } = getAnalyticsRange();
+    const { from, to } = getAnalyticsRange();
     const st = document.getElementById("anState").value;
     let when = "All time";
-    if (day) when = day;
-    else if (from && to) when = `${from} → ${to}`;
+    if (from && to) when = `${from} → ${to}`;
     else if (from) when = `From ${from}`;
     else if (to) when = `Until ${to}`;
     const parts = [when, st === "all" ? "All states" : st];
@@ -913,10 +897,6 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
         <div class="card p-4">
           <div class="flex flex-wrap items-end gap-3">
             <div>
-              <label class="block text-[11px] font-medium mb-1.5" style="color:var(--muted)">Date</label>
-              <input id="anDate" type="date" class="input-dark px-3.5 py-2.5" style="color-scheme:dark" onchange="onAnDate()">
-            </div>
-            <div>
               <label class="block text-[11px] font-medium mb-1.5" style="color:var(--muted)">From</label>
               <input id="anFrom" type="date" class="input-dark px-3.5 py-2.5" style="color-scheme:dark" onchange="onAnRange()">
             </div>
@@ -1113,7 +1093,6 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
   window.printInvoice = printInvoice;
   window.downloadPDF = downloadPDF;
   window.generateInvoice = generateInvoice;
-  window.onAnDate = onAnDate;
   window.onAnRange = onAnRange;
   window.clearAnalyticsFilters = clearAnalyticsFilters;
   window.renderAnalytics = renderAnalytics;
