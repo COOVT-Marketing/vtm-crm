@@ -625,7 +625,7 @@
       '<div class="metric-card"><div class="metric-label"><i class="ti ti-clock"></i> Avg Duration</div><div class="metric-value" id="mAvgDuration">—</div><div class="metric-sub">All calls</div></div>' +
       "</div>" +
       '<div class="filters">' +
-      '<div class="search-wrap"><i class="ti ti-search"></i><input type="text" class="search-input" id="searchInput" placeholder="Search name, phone, agent…" /></div>' +
+      '<div class="search-wrap"><i class="ti ti-search"></i><input type="text" class="search-input" id="searchInput" placeholder="Search..." /></div>' +
       '<div><span class="filter-label">Status</span><select class="filter-select" id="filterBillable">' +
       '<option value="">All Status</option>' +
       '<option value="billable">Billable</option>' +
