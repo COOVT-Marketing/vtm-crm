@@ -1,7 +1,7 @@
 (function () {
   const css = `
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-:root{--bg:#0d1110;--surface:#161b19;--surface2:#1c221f;--surface3:#222925;--border:#2a322e;--border-soft:#343c38;--text:#eef1ef;--muted:#7d8782;--accent:#3d9a9a;--accent-soft:rgba(61,154,154,.15);--accent-h:#348585;--gold:#e8b84a;--danger:#e05c5c;--radius:16px;--radius-sm:10px;--shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.25);--inv-primary:#548888;--inv-bg:#f8fafa;--inv-text:#1e293b;--inv-muted:#64748b;--inv-border:#e2e8f0;--chart-line:#e8b84a;--chart-fill:#000000}
+:root{--bg:#0d1110;--surface:#161b19;--surface2:#1c221f;--surface3:#222925;--border:#2a322e;--border-soft:#343c38;--text:#eef1ef;--muted:#7d8782;--accent:#3d9a9a;--accent-soft:rgba(61,154,154,.15);--accent-h:#348585;--gold:#e8b84a;--danger:#e05c5c;--radius:16px;--radius-sm:10px;--shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.25);--inv-primary:#548888;--inv-bg:#f8fafa;--inv-text:#1e293b;--inv-muted:#64748b;--inv-border:#e2e8f0;--chart-line:#e8b84a;--chart-fill:rgba(232,184,74,.12)}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
 #root{min-height:100vh}
@@ -355,14 +355,14 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
     const shortSub = document.getElementById("anShortestSub");
     if (longest) {
       longEl.innerHTML = Math.round(Number(longest.call_duration_sec)) + ' <span class="unit">sec</span>';
-      longSub.textContent = `${longest.ani || "—"} · ${(longest.state || "—").toString().toUpperCase()}`;
+      longSub.textContent = (longest.state || "—").toString().toUpperCase();
     } else {
       longEl.innerHTML = '— <span class="unit">sec</span>';
       longSub.textContent = "No data";
     }
     if (shortest) {
       shortEl.innerHTML = Math.round(Number(shortest.call_duration_sec)) + ' <span class="unit">sec</span>';
-      shortSub.textContent = `${shortest.ani || "—"} · ${(shortest.state || "—").toString().toUpperCase()}`;
+      shortSub.textContent = (shortest.state || "—").toString().toUpperCase();
     } else {
       shortEl.innerHTML = '— <span class="unit">sec</span>';
       shortSub.textContent = "No data";
@@ -406,17 +406,17 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
         datasets: [{
           label: "Payout",
           data: data.values,
-          borderColor: "#8b7cf6",
-          backgroundColor: "rgba(139,124,246,0.12)",
+          borderColor: "#e8b84a",
+          backgroundColor: "rgba(232,184,74,0.12)",
           borderWidth: 2.5,
           fill: true,
           tension: 0.35,
           pointRadius: 4,
           pointHoverRadius: 6,
-          pointBackgroundColor: "#8b7cf6",
+          pointBackgroundColor: "#e8b84a",
           pointBorderColor: "#161b19",
           pointBorderWidth: 2,
-          pointHoverBackgroundColor: "#a78bfa",
+          pointHoverBackgroundColor: "#f0c96a",
           pointHoverBorderColor: "#161b19"
         }]
       },
@@ -934,7 +934,7 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
           </div>
         </div>
         <div class="card chart-card">
-          <div class="chart-title">Daily Payout Trend</div>
+          <div class="chart-title">Daily Payout Chart</div>
           <div class="chart-wrap">
             <canvas id="payoutChart"></canvas>
           </div>
