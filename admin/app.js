@@ -1,7 +1,7 @@
 (function () {
   const css = `
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-:root{--bg:#0d1110;--surface:#161b19;--surface2:#1c221f;--surface3:#222925;--border:#2a322e;--border-soft:#343c38;--text:#eef1ef;--muted:#7d8782;--accent:#3d9a9a;--accent-soft:rgba(61,154,154,.15);--accent-h:#348585;--gold:#e8b84a;--danger:#e05c5c;--radius:16px;--radius-sm:10px;--shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.25);--inv-primary:#548888;--inv-bg:#f8fafa;--inv-text:#1e293b;--inv-muted:#64748b;--inv-border:#e2e8f0}
+:root{--bg:#0d1110;--surface:#161b19;--surface2:#1c221f;--surface3:#222925;--border:#2a322e;--border-soft:#343c38;--text:#eef1ef;--muted:#7d8782;--accent:#3d9a9a;--accent-soft:rgba(61,154,154,.15);--accent-h:#348585;--gold:#e8b84a;--danger:#e05c5c;--radius:16px;--radius-sm:10px;--shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.25);--inv-primary:#548888;--inv-bg:#f8fafa;--inv-text:#1e293b;--inv-muted:#64748b;--inv-border:#e2e8f0;--chart-line:#8b7cf6;--chart-fill:rgba(139,124,246,.12)}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
 #root{min-height:100vh}
@@ -11,6 +11,7 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg)
 .metric-label{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
 .metric-value{font-size:1.75rem;font-weight:700;letter-spacing:-0.03em;line-height:1.15}
 .metric-value .unit{font-size:12px;font-weight:500;color:var(--muted);margin-left:3px}
+.metric-sub{font-size:12px;color:var(--muted);margin-top:8px;font-variant-numeric:tabular-nums}
 .input-dark{background:var(--surface3);border:1px solid var(--border);color:var(--text);border-radius:var(--radius-sm);font-size:13px;transition:border-color .2s,box-shadow .2s}
 .input-dark:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
 .input-dark::placeholder{color:var(--muted)}
@@ -52,6 +53,11 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
 ::-webkit-scrollbar-thumb:hover{background:var(--border-soft)}
+.chart-card{padding:1.25rem 1.35rem}
+.chart-title{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:16px}
+.chart-wrap{position:relative;height:280px;width:100%}
+.stat-cards{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+@media(max-width:640px){.stat-cards{grid-template-columns:1fr}.chart-wrap{height:220px}}
 .inv-modal{position:fixed;inset:0;z-index:1000;display:none;overflow-y:auto;background:rgba(15,23,42,.6);backdrop-filter:blur(4px)}
 .inv-modal.open{display:block}
 .inv-panel{max-width:900px;margin:2rem auto;background:#fff;border-radius:16px;box-shadow:0 25px 50px -12px rgba(0,0,0,.35);overflow:hidden}
@@ -120,13 +126,18 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
   tr{page-break-inside:avoid}
 }
 `;
-
   const style = document.createElement("style");
   style.textContent = css;
   document.head.appendChild(style);
 
+  // Chart.js
+  const chartScript = document.createElement("script");
+  chartScript.src = "https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js";
+  document.head.appendChild(chartScript);
+
   const API = "https://script.google.com/macros/s/AKfycbw7CBJksXRQFzwTvwCWUKfp-S_1BUUNfo4c4y-22emeX81jRa0PRHkiiJ8lFwRQpMAqVA/exec";
   let calls = [], monthly = [], timer = null, extraOpen = false;
+  let payoutChart = null;
 
   function checkLogin() {
     if (localStorage.getItem("vtm_logged_in") === "true") {
@@ -136,7 +147,6 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
       timer = setInterval(loadData, 60000);
     }
   }
-
   function formatTs(v) {
     if (v == null || v === "") return "—";
     const s = String(v).trim();
@@ -147,7 +157,6 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
     const p = n => String(n).padStart(2, "0");
     return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
   }
-
   async function api(action, params = {}) {
     const u = new URL(API);
     u.searchParams.set("action", action);
@@ -156,7 +165,6 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
     if (!r.ok) throw new Error("Network error");
     return await r.json();
   }
-
   async function doLogin() {
     const pwd = document.getElementById("a1").value;
     const btn = document.getElementById("a2");
@@ -180,7 +188,6 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
       btn.textContent = "Sign In";
     }
   }
-
   function doLogout() {
     if (timer) clearInterval(timer);
     localStorage.removeItem("vtm_logged_in");
@@ -188,8 +195,11 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
     document.getElementById("a0").classList.remove("hidden");
     document.getElementById("a1").value = "";
     document.getElementById("a3").classList.add("hidden");
+    if (payoutChart) {
+      payoutChart.destroy();
+      payoutChart = null;
+    }
   }
-
   async function loadData() {
     try {
       const [c, m] = await Promise.all([api("getCalls"), api("getMonthly")]);
@@ -207,7 +217,6 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
       console.error(e);
     }
   }
-
   function getFiltered() {
     const q = (document.getElementById("af").value || "").toLowerCase().trim();
     const fr = document.getElementById("ag").value;
@@ -240,13 +249,11 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
       return true;
     });
   }
-
   function applyFilters() {
     const f = getFiltered();
     renderTable(f);
     renderMetrics(f);
   }
-
   function clearFilters() {
     document.getElementById("af").value = "";
     document.getElementById("ag").value = "";
@@ -254,7 +261,6 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
     document.getElementById("ai").value = "all";
     applyFilters();
   }
-
   function renderMetrics(rows) {
     if (!rows || !rows.length) {
       document.getElementById("a9").textContent = "0";
@@ -282,9 +288,7 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
     document.getElementById("ad").textContent = lo === Infinity ? "$0.00" : "$" + lo.toFixed(2);
     document.getElementById("ae").textContent = hi === -Infinity ? "$0.00" : "$" + hi.toFixed(2);
   }
-
   /* ---------- Analytics (with Date / Month / State filters) ---------- */
-
   function getRowDate(dts) {
     if (!dts) return "";
     const m = String(dts).match(/(\d{4})-(\d{2})-(\d{2})/);
@@ -294,11 +298,9 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
     const p = n => String(n).padStart(2, "0");
     return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
   }
-
   function normState(c) {
     return ((c.state || "Unknown").toString().trim().toUpperCase()) || "UNKNOWN";
   }
-
   // A single Date wins over From/To. If From is after To, they are swapped.
   function getAnalyticsRange() {
     const day = document.getElementById("anDate").value;
@@ -312,7 +314,6 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
     }
     return { day, from, to };
   }
-
   function getAnalyticsFiltered() {
     const { from, to } = getAnalyticsRange();
     const st = document.getElementById("anState").value;
@@ -325,7 +326,6 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
       return true;
     });
   }
-
   function populateStateFilter() {
     const sel = document.getElementById("anState");
     const current = sel.value || "all";
@@ -334,7 +334,6 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
       states.map(s => `<option value="${s}">${s}</option>`).join("");
     sel.value = states.includes(current) ? current : "all";
   }
-
   function onAnDate() {
     if (document.getElementById("anDate").value) {
       document.getElementById("anFrom").value = "";
@@ -342,14 +341,12 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
     }
     renderAnalytics();
   }
-
   function onAnRange() {
     if (document.getElementById("anFrom").value || document.getElementById("anTo").value) {
       document.getElementById("anDate").value = "";
     }
     renderAnalytics();
   }
-
   function clearAnalyticsFilters() {
     document.getElementById("anDate").value = "";
     document.getElementById("anFrom").value = "";
@@ -357,7 +354,137 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
     document.getElementById("anState").value = "all";
     renderAnalytics();
   }
-
+  function findExtremes(rows) {
+    let longest = null, shortest = null;
+    rows.forEach(c => {
+      const d = Number(c.call_duration_sec);
+      if (!isFinite(d) || d <= 0) return;
+      if (!longest || d > Number(longest.call_duration_sec)) longest = c;
+      if (!shortest || d < Number(shortest.call_duration_sec)) shortest = c;
+    });
+    return { longest, shortest };
+  }
+  function renderCallExtremes(rows) {
+    const { longest, shortest } = findExtremes(rows);
+    const longEl = document.getElementById("anLongest");
+    const shortEl = document.getElementById("anShortest");
+    const longSub = document.getElementById("anLongestSub");
+    const shortSub = document.getElementById("anShortestSub");
+    if (longest) {
+      longEl.innerHTML = Math.round(Number(longest.call_duration_sec)) + ' <span class="unit">sec</span>';
+      longSub.textContent = `${longest.ani || "—"} · ${(longest.state || "—").toString().toUpperCase()}`;
+    } else {
+      longEl.innerHTML = '— <span class="unit">sec</span>';
+      longSub.textContent = "No data";
+    }
+    if (shortest) {
+      shortEl.innerHTML = Math.round(Number(shortest.call_duration_sec)) + ' <span class="unit">sec</span>';
+      shortSub.textContent = `${shortest.ani || "—"} · ${(shortest.state || "—").toString().toUpperCase()}`;
+    } else {
+      shortEl.innerHTML = '— <span class="unit">sec</span>';
+      shortSub.textContent = "No data";
+    }
+  }
+  function buildDailyPayouts(rows) {
+    const map = {};
+    rows.forEach(c => {
+      const d = getRowDate(c.dts);
+      if (!d) return;
+      if (!map[d]) map[d] = 0;
+      map[d] += Number(c.payout) || 0;
+    });
+    const keys = Object.keys(map).sort();
+    return {
+      labels: keys.map(k => {
+        // MM-DD for compact axis like the reference image
+        const parts = k.split("-");
+        return parts.length === 3 ? `${parts[1]}-${parts[2]}` : k;
+      }),
+      fullDates: keys,
+      values: keys.map(k => map[k])
+    };
+  }
+  function renderPayoutChart(rows) {
+    const canvas = document.getElementById("payoutChart");
+    if (!canvas || typeof Chart === "undefined") return;
+    const data = buildDailyPayouts(rows);
+    if (payoutChart) {
+      payoutChart.destroy();
+      payoutChart = null;
+    }
+    if (!data.labels.length) {
+      return;
+    }
+    const ctx = canvas.getContext("2d");
+    payoutChart = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: data.labels,
+        datasets: [{
+          label: "Payout",
+          data: data.values,
+          borderColor: "#8b7cf6",
+          backgroundColor: "rgba(139,124,246,0.12)",
+          borderWidth: 2.5,
+          fill: true,
+          tension: 0.35,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointBackgroundColor: "#8b7cf6",
+          pointBorderColor: "#161b19",
+          pointBorderWidth: 2,
+          pointHoverBackgroundColor: "#a78bfa",
+          pointHoverBorderColor: "#161b19"
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: "rgba(22,27,25,0.95)",
+            titleColor: "#eef1ef",
+            bodyColor: "#eef1ef",
+            borderColor: "#2a322e",
+            borderWidth: 1,
+            padding: 12,
+            cornerRadius: 10,
+            displayColors: false,
+            callbacks: {
+              title: (items) => {
+                const i = items[0]?.dataIndex;
+                return data.fullDates[i] || items[0]?.label || "";
+              },
+              label: (ctx) => `Payout: $${Number(ctx.raw).toFixed(2)}`
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { color: "rgba(42,50,46,0.6)", drawBorder: false },
+            ticks: {
+              color: "#7d8782",
+              font: { size: 11, family: "Inter, system-ui, sans-serif" },
+              maxRotation: 0,
+              autoSkip: true,
+              maxTicksLimit: 12
+            }
+          },
+          y: {
+            beginAtZero: true,
+            grid: { color: "rgba(42,50,46,0.6)", drawBorder: false },
+            ticks: {
+              color: "#7d8782",
+              font: { size: 11, family: "Inter, system-ui, sans-serif" },
+              callback: (v) => "$" + v
+            }
+          }
+        }
+      }
+    });
+  }
   function renderAnalytics() {
     populateStateFilter();
     const rows = getAnalyticsFiltered();
@@ -372,7 +499,6 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
     document.getElementById("ap").textContent = n;
     document.getElementById("anTotal").textContent = "$" + tp.toFixed(2);
     document.getElementById("anAvg").textContent = "$" + (rows.length ? tp / rows.length : 0).toFixed(2);
-
     const { day, from, to } = getAnalyticsRange();
     const st = document.getElementById("anState").value;
     let when = "All time";
@@ -382,10 +508,21 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
     else if (to) when = `Until ${to}`;
     const parts = [when, st === "all" ? "All states" : st];
     document.getElementById("anRange").textContent = parts.join(" · ");
-
+    renderCallExtremes(rows);
     renderStates(rows);
+    // Wait for Chart.js if still loading
+    if (typeof Chart !== "undefined") {
+      renderPayoutChart(rows);
+    } else {
+      const wait = setInterval(() => {
+        if (typeof Chart !== "undefined") {
+          clearInterval(wait);
+          renderPayoutChart(rows);
+        }
+      }, 50);
+      setTimeout(() => clearInterval(wait), 5000);
+    }
   }
-
   function getStates(rows) {
     const s = {};
     rows.forEach(c => {
@@ -398,7 +535,6 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
       .map(k => ({ state: k, calls: s[k].c, totalPayout: s[k].t, avgBid: s[k].c ? s[k].t / s[k].c : 0 }))
       .sort((a, b) => b.avgBid - a.avgBid);
   }
-
   function renderStates(rows) {
     const st = getStates(rows || getAnalyticsFiltered());
     const tb = document.getElementById("aq");
@@ -416,9 +552,7 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
       tb.appendChild(tr);
     });
   }
-
   /* ---------- Tables ---------- */
-
   function renderTable(rows) {
     const tb = document.getElementById("ak");
     const nd = document.getElementById("al");
@@ -443,7 +577,6 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
       tb.appendChild(tr);
     });
   }
-
   function renderMonthly(rows) {
     const tb = document.getElementById("ar");
     tb.innerHTML = "";
@@ -467,7 +600,6 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
       tb.appendChild(tr);
     });
   }
-
   function switchTab(p) {
     document.getElementById("a8").classList.toggle("hidden", p !== "o");
     document.getElementById("am").classList.toggle("hidden", p !== "a");
@@ -477,7 +609,6 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
       renderAnalytics();
     }
   }
-
   function toggleExtra() {
     extraOpen = !extraOpen;
     const el = document.getElementById("aExtra");
@@ -493,7 +624,6 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
       ch.classList.remove("rotated");
     }
   }
-
   async function doRefresh() {
     const btn = document.getElementById("a7");
     btn.disabled = true;
@@ -509,7 +639,6 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
       btn.innerHTML = `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> Refresh`;
     }
   }
-
   function exportCSV() {
     const rows = getFiltered();
     if (!rows.length) {
@@ -537,37 +666,29 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
     a.click();
     URL.revokeObjectURL(url);
   }
-
   /* ---------- Invoice ---------- */
-
   function formatDate(d) {
     if (!(d instanceof Date) || isNaN(d)) return "—";
     const p = n => String(n).padStart(2, "0");
     return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
   }
-
   // Same source string as the Overview table, trimmed to minutes (no timezone conversion)
   function formatTimestamp(dts) {
     const s = formatTs(dts);
     if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.replace("T", " ").slice(0, 16);
     return s;
   }
-
   function formatPhone(ani) {
     if (!ani) return "—";
     return String(ani).replace(/\D/g, "");
   }
-
   function formatDuration(sec) {
     return (Number(sec) || 0) + "s";
   }
-
   let invRand = 0; // fixed per modal open so the invoice number doesn't change while typing
-
   function openInvoiceModal() {
     const monthSelect = document.getElementById("invMonthSelect");
     monthSelect.innerHTML = "";
-
     // months (YYYY-MM) that actually have billable calls
     const billableMonths = new Set();
     calls.forEach(r => {
@@ -576,7 +697,6 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
         if (k) billableMonths.add(k);
       }
     });
-
     const now = new Date();
     const keys = [];
     for (let i = 0; i < 12; i++) {
@@ -589,7 +709,6 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
       monthSelect.appendChild(opt);
       keys.push(val);
     }
-
     // Default: previous month if it has billable calls, otherwise the newest month that does
     let def = keys[1];
     if (!billableMonths.has(def)) {
@@ -597,13 +716,11 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
       if (found) def = found;
     }
     monthSelect.value = def;
-
     invRand = Math.floor(Math.random() * 9000) + 1000;
     document.getElementById("invoiceModal").classList.add("open");
     document.body.style.overflow = "hidden";
     generateInvoice();
   }
-
   function generateInvoice() {
     const month = document.getElementById("invMonthSelect").value;
     const buyer = document.getElementById("invBuyerName").value.trim() || "Client / Partner";
@@ -645,16 +762,13 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
     document.getElementById("invSubtotal").textContent = "$" + subtotal.toFixed(2);
     document.getElementById("invTotal").textContent = "$" + subtotal.toFixed(2);
   }
-
   function closeInvoiceModal() {
     document.getElementById("invoiceModal").classList.remove("open");
     document.body.style.overflow = "";
   }
-
   function printInvoice() {
     window.print();
   }
-
   function downloadPDF() {
     const element = document.getElementById("invoicePrintArea");
     if (!element) {
@@ -688,9 +802,7 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
         alert("Failed to generate PDF. Please try Print instead.");
       });
   }
-
   /* ---------- Markup ---------- */
-
   document.getElementById("root").innerHTML = `
   <div id="a0" class="min-h-screen flex items-center justify-center p-5">
     <div class="login-card fade-in">
@@ -704,7 +816,6 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
       <p id="a3" class="text-sm mt-4 text-center hidden" style="color:var(--danger)">Incorrect password</p>
     </div>
   </div>
-
   <div id="a4" class="hidden">
     <header class="site-header">
       <div class="max-w-7xl mx-auto px-5 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-4">
@@ -730,7 +841,6 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
         </div>
       </div>
     </header>
-
     <main class="max-w-7xl mx-auto px-5 sm:px-6 py-7">
       <div id="a8" class="space-y-5 fade-in">
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
@@ -739,7 +849,6 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
           <div class="metric"><div class="metric-label">Avg Duration</div><div id="ab" class="metric-value">— <span class="unit">sec</span></div></div>
           <div class="metric"><div class="metric-label">Avg Payout</div><div id="ac" class="metric-value payout-hidden" style="color:var(--gold)">—</div></div>
         </div>
-
         <div>
           <button id="aToggle" onclick="toggleExtra()" class="btn-toggle">
             <span id="aToggleText">See more</span>
@@ -750,7 +859,6 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
             <div class="metric"><div class="metric-label">Highest Bid</div><div id="ae" class="metric-value payout-hidden" style="color:var(--gold)">—</div></div>
           </div>
         </div>
-
         <div class="card p-4">
           <div class="flex flex-wrap items-end gap-3">
             <div class="flex-1 min-w-[160px]">
@@ -778,7 +886,6 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
             <button onclick="openInvoiceModal()" class="btn btn-invoice">Generate Invoice</button>
           </div>
         </div>
-
         <div class="card overflow-hidden">
           <div class="px-5 py-4 border-b flex items-center justify-between" style="border-color:var(--border)">
             <h2 class="font-semibold text-[13.5px] tracking-wide">Call Details</h2>
@@ -804,7 +911,6 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
           </div>
         </div>
       </div>
-
       <div id="am" class="hidden space-y-5 fade-in">
         <div class="card p-4">
           <div class="flex flex-wrap items-end gap-3">
@@ -830,7 +936,6 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
             <span id="anRange" class="ml-auto text-[11.5px]" style="color:var(--muted)"></span>
           </div>
         </div>
-
         <div class="grid grid-cols-2 lg:grid-cols-5 gap-3.5">
           <div class="metric"><div class="metric-label">Total Calls</div><div id="an" class="metric-value">—</div></div>
           <div class="metric"><div class="metric-label">Billable Calls</div><div id="ao" class="metric-value" style="color:var(--accent)">—</div></div>
@@ -838,7 +943,24 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
           <div class="metric"><div class="metric-label">Total Payout</div><div id="anTotal" class="metric-value payout-hidden" style="color:var(--gold)">—</div></div>
           <div class="metric"><div class="metric-label">Avg Payout</div><div id="anAvg" class="metric-value payout-hidden" style="color:var(--gold)">—</div></div>
         </div>
-
+        <div class="stat-cards">
+          <div class="metric">
+            <div class="metric-label">Longest Call</div>
+            <div id="anLongest" class="metric-value">— <span class="unit">sec</span></div>
+            <div id="anLongestSub" class="metric-sub">—</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Shortest Call</div>
+            <div id="anShortest" class="metric-value">— <span class="unit">sec</span></div>
+            <div id="anShortestSub" class="metric-sub">—</div>
+          </div>
+        </div>
+        <div class="card chart-card">
+          <div class="chart-title">Daily Payout Trend</div>
+          <div class="chart-wrap">
+            <canvas id="payoutChart"></canvas>
+          </div>
+        </div>
         <div class="card overflow-hidden">
           <div class="px-5 py-4 border-b" style="border-color:var(--border)">
             <h2 class="font-semibold text-[13.5px] tracking-wide">State Summary</h2>
@@ -858,7 +980,6 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
             </table>
           </div>
         </div>
-
         <div class="card overflow-hidden">
           <div class="px-5 py-4 border-b" style="border-color:var(--border)">
             <h2 class="font-semibold text-[13.5px] tracking-wide">Monthly Summary</h2>
@@ -879,7 +1000,6 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
       </div>
     </main>
   </div>
-
   <div id="invoiceModal" class="inv-modal">
     <div class="inv-panel">
       <div class="inv-toolbar">
@@ -896,7 +1016,6 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
           <button class="btn-close-inv" onclick="closeInvoiceModal()">×</button>
         </div>
       </div>
-
       <div class="inv-form">
         <div class="inv-form-grid">
           <div>
@@ -925,7 +1044,6 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
           </div>
         </div>
       </div>
-
       <div class="inv-body" id="invoicePrintArea">
         <div class="inv-header">
           <div class="inv-brand">
@@ -943,7 +1061,6 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
             <div class="inv-meta-row"><span>Billing Period</span><span id="invPeriod">—</span></div>
           </div>
         </div>
-
         <div class="inv-grid">
           <div class="bill-to">
             <div class="inv-section-title">Bill To</div>
@@ -957,7 +1074,6 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
             <div class="bank-row"><span>IBAN / Routing</span><span id="routingDisplay">—</span></div>
           </div>
         </div>
-
         <div class="inv-table-wrap">
           <table class="inv-table">
             <thead>
@@ -972,7 +1088,6 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
             <tbody id="invoiceTableBody"></tbody>
           </table>
         </div>
-
         <div class="inv-totals">
           <div class="totals-box">
             <div class="total-row"><span>Subtotal</span><span id="invSubtotal">$0.00</span></div>
@@ -986,9 +1101,7 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
     </div>
   </div>
   `;
-
   /* ---------- Expose handlers used by inline onclick/onchange ---------- */
-
   window.doLogin = doLogin;
   window.doLogout = doLogout;
   window.doRefresh = doRefresh;
@@ -1006,6 +1119,5 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
   window.onAnRange = onAnRange;
   window.clearAnalyticsFilters = clearAnalyticsFilters;
   window.renderAnalytics = renderAnalytics;
-
   checkLogin();
 })();
