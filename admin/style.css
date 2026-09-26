@@ -21,8 +21,8 @@
   --inv-text: #1e293b;
   --inv-muted: #64748b;
   --inv-border: #e2e8f0;
-  --chart-line: #8b7cf6;
-  --chart-fill: rgba(139,124,246,.12);
+  --chart-line: #e8b84a;
+  --chart-fill: #000000
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
