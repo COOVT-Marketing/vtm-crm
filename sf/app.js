@@ -10,7 +10,7 @@
 
   const BILLABLE_THRESHOLD_SECONDS = 120;
   const SESSION_KEY = "vtm_publisher_session";
-  const COMPANIES_WITHOUT_PAYOUT = ["aikron"];
+  const COMPANIES_WITHOUT_PAYOUT = [""];
 
   const COL_MAP = {
     timestamp: ["timestamp", "date", "time"],
