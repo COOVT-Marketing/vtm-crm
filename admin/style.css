@@ -162,13 +162,6 @@ body {
   background: var(--accent-soft);
   border-color: var(--accent);
 }
-.payout-hidden {
-  filter: blur(7px);
-  transition: filter .25s ease;
-  cursor: pointer;
-  user-select: none;
-}
-.payout-hidden:hover { filter: blur(0); }
 .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 table { width: 100%; border-collapse: collapse; }
 thead tr { background: var(--surface2); }
