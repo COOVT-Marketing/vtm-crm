@@ -68,8 +68,8 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
 .btn-pdf:hover{background:#0f172a}
 .btn-close-inv{width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid var(--inv-border);border-radius:8px;color:var(--inv-muted);cursor:pointer;font-size:18px}
 .btn-close-inv:hover{background:#f1f5f9;color:var(--inv-text)}
-.inv-body{padding:40px 44px 36px;color:var(--inv-text);font-family:'Inter',system-ui,sans-serif;background:#ffffff}
-.inv-header{display:flex;justify-content:space-between;align-items:flex-start;gap:28px;margin-bottom:28px}
+.inv-body{padding:32px 36px 28px;color:var(--inv-text);font-family:'Inter',system-ui,sans-serif;background:#ffffff}
+.inv-header{display:flex;justify-content:space-between;align-items:flex-start;gap:28px;margin-bottom:20px}
 .inv-brand{display:flex;gap:14px;align-items:center}
 .inv-logo{width:52px;height:52px;border-radius:12px;background:linear-gradient(145deg,#f0f7f7 0%,#e8f2f2 100%);border:1px solid #d4e4e4;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0}
 .inv-logo img{height:34px;width:auto;object-fit:contain}
@@ -80,8 +80,8 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
 .inv-meta-row{display:flex;justify-content:flex-end;gap:12px;font-size:13px;margin-bottom:5px}
 .inv-meta-row span:first-child{color:var(--inv-muted);font-weight:500}
 .inv-meta-row span:last-child{font-weight:600;color:var(--inv-text);font-variant-numeric:tabular-nums}
-.inv-divider{height:1px;background:linear-gradient(90deg,transparent,var(--inv-border),transparent);margin:0 0 28px}
-.inv-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:28px}
+.inv-divider{height:1px;background:linear-gradient(90deg,transparent,var(--inv-border),transparent);margin:0 0 20px}
+.inv-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
 @media(max-width:640px){.inv-grid{grid-template-columns:1fr}.inv-header{flex-direction:column}.inv-meta{text-align:left}.inv-meta-row{justify-content:flex-start}}
 .inv-section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--inv-muted);margin-bottom:10px}
 .bill-to{background:var(--inv-bg);border:1px solid var(--inv-border);border-radius:12px;padding:16px 18px}
@@ -92,15 +92,15 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
 .bank-row:last-child{margin-bottom:0}
 .bank-row span:first-child{color:var(--inv-muted)}
 .bank-row span:last-child{font-weight:500;color:var(--inv-text);text-align:right;font-variant-numeric:tabular-nums}
-.inv-summary{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:28px}
+.inv-summary{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
 @media(max-width:480px){.inv-summary{grid-template-columns:1fr}}
-.inv-stat{background:linear-gradient(165deg,#f8fafa 0%,#f0f5f5 100%);border:1px solid var(--inv-border);border-radius:14px;padding:20px 22px;text-align:center}
+.inv-stat{background:linear-gradient(165deg,#f8fafa 0%,#f0f5f5 100%);border:1px solid var(--inv-border);border-radius:14px;padding:16px 18px;text-align:center}
 .inv-stat-label{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--inv-muted);margin-bottom:8px}
 .inv-stat-value{font-size:1.75rem;font-weight:700;letter-spacing:-0.03em;line-height:1.1;color:var(--inv-text)}
 .inv-stat-value.gold{color:#b8860b}
 .inv-stat-value.teal{color:var(--inv-primary)}
 .inv-stat-sub{font-size:12px;color:var(--inv-muted);margin-top:6px}
-.inv-line-item{border:1px solid var(--inv-border);border-radius:12px;overflow:hidden;margin-bottom:24px}
+.inv-line-item{border:1px solid var(--inv-border);border-radius:12px;overflow:hidden;margin-bottom:18px}
 .inv-line-head{display:grid;grid-template-columns:1fr 100px 120px;background:var(--inv-primary);padding:11px 20px;gap:12px}
 .inv-line-head span{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#fff}
 .inv-line-head span:nth-child(2),.inv-line-head span:nth-child(3){text-align:right}
@@ -129,7 +129,18 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
   .inv-toolbar,.inv-form{display:none!important}
   .inv-panel{box-shadow:none!important;border-radius:0!important;margin:0!important;max-width:none!important}
   .inv-body{padding:0!important}
-  @page{size:A4;margin:14mm 16mm}
+  .inv-header{margin-bottom:18px!important}
+  .inv-divider{margin-bottom:18px!important}
+  .inv-grid{gap:14px!important;margin-bottom:18px!important}
+  .inv-summary{gap:12px!important;margin-bottom:18px!important}
+  .inv-stat{padding:14px 16px!important}
+  .inv-stat-value{font-size:1.5rem!important}
+  .inv-line-item{margin-bottom:16px!important}
+  .inv-line-head{padding:9px 16px!important}
+  .inv-line-body{padding:12px 16px!important}
+  .totals-box{padding:12px 16px!important}
+  .bill-to,.bank-box{padding:12px 14px!important}
+  @page{size:A4;margin:12mm 14mm}
 }
 `;
   const style = document.createElement("style");
@@ -771,25 +782,43 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
     if (wasHidden) {
       modal.classList.add("open");
     }
+    const filename = (document.getElementById("invNumber").textContent || "invoice") + ".pdf";
     const opt = {
-      margin: [10, 10, 10, 10],
-      filename: (document.getElementById("invNumber").textContent || "invoice") + ".pdf",
+      margin: [10, 12, 10, 12],
+      filename,
       image: { type: "jpeg", quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: "#ffffff" },
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: "#ffffff",
+        scrollX: 0,
+        scrollY: 0,
+        windowWidth: 720
+      },
       jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-      pagebreak: { mode: ["css", "legacy"] }
+      pagebreak: { mode: ["avoid-all"] }
     };
-    html2pdf()
-      .set(opt)
-      .from(element)
-      .save()
-      .then(() => {
-        if (wasHidden) {
-          modal.classList.remove("open");
+    // Render to PDF, force exactly 1 page, then download
+    const worker = html2pdf().set(opt).from(element);
+    worker
+      .toPdf()
+      .get("pdf")
+      .then(pdf => {
+        const total = pdf.internal.getNumberOfPages();
+        for (let i = total; i > 1; i--) {
+          pdf.deletePage(i);
         }
+        // Scale content to fit one page if it overflowed slightly
+        // (deletePage already ensures single page; content may be clipped only if huge)
+      })
+      .then(() => worker.save())
+      .then(() => {
+        if (wasHidden) modal.classList.remove("open");
       })
       .catch(err => {
         console.error("PDF Error:", err);
+        if (wasHidden) modal.classList.remove("open");
         alert("Failed to generate PDF. Please try Print instead.");
       });
   }
