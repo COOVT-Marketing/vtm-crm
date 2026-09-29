@@ -156,6 +156,11 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
   html2pdfScript.src = "https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js";
   document.head.appendChild(html2pdfScript);
 
+  // Standalone jsPDF as reliable PDF backend (no html2canvas)
+  const jspdfScript = document.createElement("script");
+  jspdfScript.src = "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js";
+  document.head.appendChild(jspdfScript);
+
   const API = "https://script.google.com/macros/s/AKfycbw7CBJksXRQFzwTvwCWUKfp-S_1BUUNfo4c4y-22emeX81jRa0PRHkiiJ8lFwRQpMAqVA/exec";
   let calls = [], monthly = [], timer = null, extraOpen = false;
   let payoutChart = null;
@@ -768,71 +773,241 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
     window.print();
   }
   function downloadPDF() {
-    const element = document.getElementById("invoicePrintArea");
-    if (!element) {
-      alert("Invoice content not found");
+    // Prefer pure jsPDF (no html2canvas) — avoids 0x0 canvas / CORS crashes
+    const JsPDFCtor = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
+    if (!JsPDFCtor) {
+      // Fallback: library still loading
+      if (typeof html2pdf === "undefined") {
+        alert("PDF library is still loading. Please wait a second and try again, or use Print.");
+        return;
+      }
+      // Last resort: open print dialog (user can Save as PDF)
+      window.print();
       return;
     }
-    if (typeof html2pdf === "undefined") {
-      alert("PDF library is still loading. Please wait a moment and try again, or use Print.");
-      return;
-    }
 
-    const filename = (document.getElementById("invNumber").textContent || "invoice") + ".pdf";
+    const invNum = document.getElementById("invNumber").textContent || "invoice";
+    const invDate = document.getElementById("invDate").textContent || "—";
+    const period = document.getElementById("invPeriod").textContent || "—";
+    const buyer = document.getElementById("billToName").textContent || "—";
+    const bankName = document.getElementById("bankNameDisplay").textContent || "—";
+    const accountTitle = document.getElementById("accountTitleDisplay").textContent || "—";
+    const accountNumber = document.getElementById("accountNumberDisplay").textContent || "—";
+    const routing = document.getElementById("routingDisplay").textContent || "—";
+    const qty = document.getElementById("invStatCalls").textContent || "0";
+    const amount = document.getElementById("invStatAmount").textContent || "$0.00";
+    const lineDesc = document.getElementById("invLineDesc").textContent || "Auto";
+    const linePeriod = document.getElementById("invLinePeriod").textContent || period;
+    const lineQty = document.getElementById("invLineCalls").textContent || qty;
+    const lineAmount = document.getElementById("invLineAmount").textContent || amount;
+    const subtotal = document.getElementById("invSubtotal").textContent || amount;
+    const total = document.getElementById("invTotal").textContent || amount;
 
-    const opt = {
-      margin: [10, 12, 10, 12],
-      filename,
-      image: { type: "jpeg", quality: 0.98 },
-      html2canvas: {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: "#ffffff",
-        scrollX: 0,
-        scrollY: 0,
-        windowWidth: Math.max(element.scrollWidth, 700),
-        imageTimeout: 2000,
-        onclone: (clonedDoc) => {
-          // Replace external logo with a simple brand mark so CORS never breaks the PDF
-          clonedDoc.querySelectorAll("#invoicePrintArea img").forEach(img => {
-            const wrap = img.parentElement;
-            if (wrap) {
-              wrap.innerHTML = "";
-              wrap.style.background = "linear-gradient(135deg,#548888,#3d6e6e)";
-              wrap.style.display = "flex";
-              wrap.style.alignItems = "center";
-              wrap.style.justifyContent = "center";
-              const mark = clonedDoc.createElement("span");
-              mark.textContent = "VTM";
-              mark.style.cssText = "color:#fff;font-size:13px;font-weight:700;letter-spacing:0.04em;font-family:Inter,system-ui,sans-serif;";
-              wrap.appendChild(mark);
-            }
-          });
-          const area = clonedDoc.getElementById("invoicePrintArea");
-          if (area) {
-            area.style.transform = "none";
-            area.style.background = "#ffffff";
-          }
-        }
-      },
-      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-      pagebreak: { mode: ["avoid-all"] }
-    };
+    const doc = new JsPDFCtor({ unit: "mm", format: "a4", orientation: "portrait" });
+    const pageW = doc.internal.pageSize.getWidth();
+    const margin = 18;
+    const contentW = pageW - margin * 2;
+    let y = margin;
 
-    const worker = html2pdf().set(opt).from(element);
-    worker
-      .toPdf()
-      .get("pdf")
-      .then(pdf => {
-        const total = pdf.internal.getNumberOfPages();
-        for (let i = total; i > 1; i--) pdf.deletePage(i);
-      })
-      .then(() => worker.save())
-      .catch(err => {
-        console.error("PDF Error:", err);
-        alert("Failed to generate PDF. Please use Print → Save as PDF instead.");
-      });
+    const teal = [84, 136, 136];
+    const dark = [30, 41, 59];
+    const muted = [100, 116, 139];
+    const gold = [184, 134, 11];
+    const light = [248, 250, 250];
+    const border = [226, 232, 240];
+
+    // Header brand
+    doc.setFillColor(...teal);
+    doc.roundedRect(margin, y, 12, 12, 2, 2, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.text("VTM", margin + 6, y + 7.5, { align: "center" });
+
+    doc.setTextColor(...teal);
+    doc.setFontSize(14);
+    doc.text("Vocal Tech Marketing", margin + 16, y + 5);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(...muted);
+    doc.text("Where brands find their voices!", margin + 16, y + 10);
+
+    // Invoice badge + meta (right)
+    const rightX = pageW - margin;
+    doc.setFillColor(...teal);
+    doc.roundedRect(rightX - 28, y, 28, 7, 1.5, 1.5, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.text("INVOICE", rightX - 14, y + 4.8, { align: "center" });
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(...muted);
+    doc.text("Invoice #", rightX - 55, y + 14);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...dark);
+    doc.text(String(invNum), rightX, y + 14, { align: "right" });
+
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...muted);
+    doc.text("Invoice Date", rightX - 55, y + 20);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...dark);
+    doc.text(String(invDate), rightX, y + 20, { align: "right" });
+
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...muted);
+    doc.text("Billing Period", rightX - 55, y + 26);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...dark);
+    doc.text(String(period), rightX, y + 26, { align: "right" });
+
+    y += 36;
+    // Divider
+    doc.setDrawColor(...border);
+    doc.setLineWidth(0.3);
+    doc.line(margin, y, pageW - margin, y);
+    y += 8;
+
+    // Bill To + Banking boxes
+    const colW = (contentW - 6) / 2;
+    const boxH = 36;
+    doc.setFillColor(...light);
+    doc.setDrawColor(...border);
+    doc.roundedRect(margin, y, colW, boxH, 2, 2, "FD");
+    doc.roundedRect(margin + colW + 6, y, colW, boxH, 2, 2, "FD");
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.setTextColor(...muted);
+    doc.text("BILL TO", margin + 4, y + 6);
+    doc.setFontSize(11);
+    doc.setTextColor(...dark);
+    doc.text(String(buyer), margin + 4, y + 14);
+
+    doc.setFontSize(7);
+    doc.setTextColor(...teal);
+    doc.text("BANKING DETAILS", margin + colW + 10, y + 6);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(...muted);
+    const bankLeft = margin + colW + 10;
+    const bankRight = pageW - margin - 4;
+    const bankRows = [
+      ["Bank Name", bankName],
+      ["Account Title", accountTitle],
+      ["Account Number", accountNumber],
+      ["IBAN / Routing", routing]
+    ];
+    let by = y + 12;
+    bankRows.forEach(([lab, val]) => {
+      doc.setTextColor(...muted);
+      doc.text(lab, bankLeft, by);
+      doc.setTextColor(...dark);
+      doc.setFont("helvetica", "bold");
+      doc.text(String(val), bankRight, by, { align: "right" });
+      doc.setFont("helvetica", "normal");
+      by += 5.5;
+    });
+
+    y += boxH + 8;
+
+    // Quantity + Amount cards
+    const cardW = (contentW - 6) / 2;
+    const cardH = 28;
+    doc.setFillColor(...light);
+    doc.setDrawColor(...border);
+    doc.roundedRect(margin, y, cardW, cardH, 2, 2, "FD");
+    doc.roundedRect(margin + cardW + 6, y, cardW, cardH, 2, 2, "FD");
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.setTextColor(...muted);
+    doc.text("QUANTITY", margin + cardW / 2, y + 7, { align: "center" });
+    doc.setFontSize(18);
+    doc.setTextColor(...teal);
+    doc.text(String(qty), margin + cardW / 2, y + 17, { align: "center" });
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.setTextColor(...muted);
+    doc.text("For this billing period", margin + cardW / 2, y + 23, { align: "center" });
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.text("TOTAL AMOUNT", margin + cardW + 6 + cardW / 2, y + 7, { align: "center" });
+    doc.setFontSize(18);
+    doc.setTextColor(...gold);
+    doc.text(String(amount), margin + cardW + 6 + cardW / 2, y + 17, { align: "center" });
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.setTextColor(...muted);
+    doc.text("Amount due", margin + cardW + 6 + cardW / 2, y + 23, { align: "center" });
+
+    y += cardH + 8;
+
+    // Line item table header
+    const rowH = 10;
+    doc.setFillColor(...teal);
+    doc.roundedRect(margin, y, contentW, rowH, 1.5, 1.5, "F");
+    // square bottom of header
+    doc.rect(margin, y + 5, contentW, 5, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.text("DESCRIPTION", margin + 4, y + 6.5);
+    doc.text("QTY", margin + contentW * 0.62, y + 6.5);
+    doc.text("AMOUNT", pageW - margin - 4, y + 6.5, { align: "right" });
+    y += rowH;
+
+    // Line body
+    doc.setDrawColor(...border);
+    doc.setFillColor(255, 255, 255);
+    doc.rect(margin, y, contentW, 16, "FD");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(...dark);
+    doc.text(String(lineDesc), margin + 4, y + 6.5);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(...muted);
+    doc.text(String(linePeriod), margin + 4, y + 12);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(...dark);
+    doc.text(String(lineQty), margin + contentW * 0.62, y + 9);
+    doc.text(String(lineAmount), pageW - margin - 4, y + 9, { align: "right" });
+    y += 22;
+
+    // Totals box (right aligned)
+    const totW = 70;
+    const totX = pageW - margin - totW;
+    doc.setFillColor(...light);
+    doc.setDrawColor(...border);
+    doc.roundedRect(totX, y, totW, 28, 2, 2, "FD");
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(...muted);
+    doc.text("Subtotal", totX + 4, y + 8);
+    doc.setTextColor(...dark);
+    doc.setFont("helvetica", "bold");
+    doc.text(String(subtotal), totX + totW - 4, y + 8, { align: "right" });
+
+    doc.setDrawColor(...border);
+    doc.line(totX + 4, y + 12, totX + totW - 4, y + 12);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(...dark);
+    doc.text("Total Due", totX + 4, y + 21);
+    doc.setFillColor(...teal);
+    doc.roundedRect(totX + totW - 36, y + 15, 32, 9, 1.5, 1.5, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(9);
+    doc.text(String(total), totX + totW - 20, y + 21, { align: "center" });
+
+    // Exactly one page — save
+    doc.save(invNum + ".pdf");
   }
   /* ---------- Markup ---------- */
   document.getElementById("root").innerHTML = `
