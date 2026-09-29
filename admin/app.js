@@ -753,7 +753,7 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
     document.getElementById("routingDisplay").textContent = routing;
     document.getElementById("invStatCalls").textContent = filtered.length;
     document.getElementById("invStatAmount").textContent = "$" + subtotal.toFixed(2);
-    document.getElementById("invLineDesc").textContent = "Auto Traffic";
+    document.getElementById("invLineDesc").textContent = "Auto";
     document.getElementById("invLinePeriod").textContent = periodLabel;
     document.getElementById("invLineCalls").textContent = filtered.length;
     document.getElementById("invLineAmount").textContent = "$" + subtotal.toFixed(2);
@@ -1121,7 +1121,7 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
             <span>Amount</span>
           </div>
           <div class="inv-line-body">
-            <span class="inv-line-desc"><span id="invLineDesc">Auto Traffic</span><small id="invLinePeriod">—</small></span>
+            <span class="inv-line-desc"><span id="invLineDesc">Auto</span><small id="invLinePeriod">—</small></span>
             <span id="invLineCalls">0</span>
             <span id="invLineAmount">$0.00</span>
           </div>
