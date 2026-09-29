@@ -753,7 +753,7 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
     document.getElementById("routingDisplay").textContent = routing;
     document.getElementById("invStatCalls").textContent = filtered.length;
     document.getElementById("invStatAmount").textContent = "$" + subtotal.toFixed(2);
-    document.getElementById("invLineDesc").textContent = "Billable call services";
+    document.getElementById("invLineDesc").textContent = "Marketing services";
     document.getElementById("invLinePeriod").textContent = periodLabel;
     document.getElementById("invLineCalls").textContent = filtered.length;
     document.getElementById("invLineAmount").textContent = "$" + subtotal.toFixed(2);
@@ -777,12 +777,9 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
       alert("PDF library is still loading. Please wait a moment and try again, or use Print.");
       return;
     }
-    const modal = document.getElementById("invoiceModal");
-    const wasHidden = !modal.classList.contains("open");
-    if (wasHidden) {
-      modal.classList.add("open");
-    }
+
     const filename = (document.getElementById("invNumber").textContent || "invoice") + ".pdf";
+
     const opt = {
       margin: [10, 12, 10, 12],
       filename,
@@ -794,32 +791,47 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
         backgroundColor: "#ffffff",
         scrollX: 0,
         scrollY: 0,
-        windowWidth: 720
+        windowWidth: Math.max(element.scrollWidth, 700),
+        imageTimeout: 2000,
+        onclone: (clonedDoc) => {
+          // Replace external logo with a simple brand mark so CORS never breaks the PDF
+          clonedDoc.querySelectorAll("#invoicePrintArea img").forEach(img => {
+            const wrap = img.parentElement;
+            if (wrap) {
+              wrap.innerHTML = "";
+              wrap.style.background = "linear-gradient(135deg,#548888,#3d6e6e)";
+              wrap.style.display = "flex";
+              wrap.style.alignItems = "center";
+              wrap.style.justifyContent = "center";
+              const mark = clonedDoc.createElement("span");
+              mark.textContent = "VTM";
+              mark.style.cssText = "color:#fff;font-size:13px;font-weight:700;letter-spacing:0.04em;font-family:Inter,system-ui,sans-serif;";
+              wrap.appendChild(mark);
+            }
+          });
+          const area = clonedDoc.getElementById("invoicePrintArea");
+          if (area) {
+            area.style.transform = "none";
+            area.style.background = "#ffffff";
+          }
+        }
       },
       jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
       pagebreak: { mode: ["avoid-all"] }
     };
-    // Render to PDF, force exactly 1 page, then download
+
     const worker = html2pdf().set(opt).from(element);
     worker
       .toPdf()
       .get("pdf")
       .then(pdf => {
         const total = pdf.internal.getNumberOfPages();
-        for (let i = total; i > 1; i--) {
-          pdf.deletePage(i);
-        }
-        // Scale content to fit one page if it overflowed slightly
-        // (deletePage already ensures single page; content may be clipped only if huge)
+        for (let i = total; i > 1; i--) pdf.deletePage(i);
       })
       .then(() => worker.save())
-      .then(() => {
-        if (wasHidden) modal.classList.remove("open");
-      })
       .catch(err => {
         console.error("PDF Error:", err);
-        if (wasHidden) modal.classList.remove("open");
-        alert("Failed to generate PDF. Please try Print instead.");
+        alert("Failed to generate PDF. Please use Print → Save as PDF instead.");
       });
   }
   /* ---------- Markup ---------- */
@@ -1092,9 +1104,9 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
         </div>
         <div class="inv-summary">
           <div class="inv-stat">
-            <div class="inv-stat-label">Total Calls</div>
+            <div class="inv-stat-label">Quantity</div>
             <div class="inv-stat-value teal" id="invStatCalls">0</div>
-            <div class="inv-stat-sub">Billable calls this period</div>
+            <div class="inv-stat-sub">For this billing period</div>
           </div>
           <div class="inv-stat">
             <div class="inv-stat-label">Total Amount</div>
@@ -1105,11 +1117,11 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
         <div class="inv-line-item">
           <div class="inv-line-head">
             <span>Description</span>
-            <span>Calls</span>
+            <span>Qty</span>
             <span>Amount</span>
           </div>
           <div class="inv-line-body">
-            <span class="inv-line-desc"><span id="invLineDesc">Billable call services</span><small id="invLinePeriod">—</small></span>
+            <span class="inv-line-desc"><span id="invLineDesc">Marketing services</span><small id="invLinePeriod">—</small></span>
             <span id="invLineCalls">0</span>
             <span id="invLineAmount">$0.00</span>
           </div>
