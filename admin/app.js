@@ -141,6 +141,10 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
   chartScript.src = "https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js";
   document.head.appendChild(chartScript);
 
+  const html2pdfScript = document.createElement("script");
+  html2pdfScript.src = "https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js";
+  document.head.appendChild(html2pdfScript);
+
   const API = "https://script.google.com/macros/s/AKfycbw7CBJksXRQFzwTvwCWUKfp-S_1BUUNfo4c4y-22emeX81jRa0PRHkiiJ8lFwRQpMAqVA/exec";
   let calls = [], monthly = [], timer = null, extraOpen = false;
   let payoutChart = null;
@@ -758,18 +762,22 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
       alert("Invoice content not found");
       return;
     }
+    if (typeof html2pdf === "undefined") {
+      alert("PDF library is still loading. Please wait a moment and try again, or use Print.");
+      return;
+    }
     const modal = document.getElementById("invoiceModal");
     const wasHidden = !modal.classList.contains("open");
     if (wasHidden) {
       modal.classList.add("open");
     }
     const opt = {
-      margin: [8, 8, 8, 8],
+      margin: [10, 10, 10, 10],
       filename: (document.getElementById("invNumber").textContent || "invoice") + ".pdf",
       image: { type: "jpeg", quality: 0.98 },
       html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: "#ffffff" },
       jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-      pagebreak: { mode: ["avoid-all", "css", "legacy"] }
+      pagebreak: { mode: ["css", "legacy"] }
     };
     html2pdf()
       .set(opt)
@@ -1090,7 +1098,7 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
     </div>
   </div>
   `;
-
+  /* ---------- Expose handlers used by inline onclick/onchange ---------- */
   window.doLogin = doLogin;
   window.doLogout = doLogout;
   window.doRefresh = doRefresh;
