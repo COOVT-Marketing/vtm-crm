@@ -56,9 +56,9 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
 .chart-wrap{position:relative;height:280px;width:100%}
 .stat-cards{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
 @media(max-width:640px){.stat-cards{grid-template-columns:1fr}.chart-wrap{height:220px}}
-.inv-modal{position:fixed;inset:0;z-index:1000;display:none;overflow-y:auto;background:rgba(15,23,42,.6);backdrop-filter:blur(4px)}
+.inv-modal{position:fixed;inset:0;z-index:1000;display:none;overflow-y:auto;background:rgba(15,23,42,.55);backdrop-filter:blur(6px)}
 .inv-modal.open{display:block}
-.inv-panel{max-width:900px;margin:2rem auto;background:#fff;border-radius:16px;box-shadow:0 25px 50px -12px rgba(0,0,0,.35);overflow:hidden}
+.inv-panel{max-width:720px;margin:2rem auto;background:#fff;border-radius:20px;box-shadow:0 25px 50px -12px rgba(0,0,0,.35);overflow:hidden}
 .inv-toolbar{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid var(--inv-border);background:#fafbfc}
 .inv-toolbar h2{font-size:16px;font-weight:600;color:var(--inv-text)}
 .inv-actions{display:flex;gap:10px}
@@ -68,45 +68,54 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
 .btn-pdf:hover{background:#0f172a}
 .btn-close-inv{width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid var(--inv-border);border-radius:8px;color:var(--inv-muted);cursor:pointer;font-size:18px}
 .btn-close-inv:hover{background:#f1f5f9;color:var(--inv-text)}
-.inv-body{padding:40px 44px;color:var(--inv-text);font-family:'Inter',system-ui,sans-serif;background:#ffffff}
-.inv-header{display:flex;justify-content:space-between;gap:32px;margin-bottom:32px;padding-bottom:24px;border-bottom:1px solid var(--inv-border)}
-.inv-brand{display:flex;gap:16px;align-items:center}
-.inv-logo{width:56px;height:56px;border-radius:10px;background:var(--inv-bg);border:1px solid var(--inv-border);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0}
-.inv-logo img{height:36px;width:auto;object-fit:contain}
-.inv-company h1{font-size:20px;font-weight:700;color:var(--inv-primary)}
-.inv-company .tagline{font-size:13px;color:var(--inv-muted);margin-top:2px}
+.inv-body{padding:40px 44px 36px;color:var(--inv-text);font-family:'Inter',system-ui,sans-serif;background:#ffffff}
+.inv-header{display:flex;justify-content:space-between;align-items:flex-start;gap:28px;margin-bottom:28px}
+.inv-brand{display:flex;gap:14px;align-items:center}
+.inv-logo{width:52px;height:52px;border-radius:12px;background:linear-gradient(145deg,#f0f7f7 0%,#e8f2f2 100%);border:1px solid #d4e4e4;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0}
+.inv-logo img{height:34px;width:auto;object-fit:contain}
+.inv-company h1{font-size:18px;font-weight:700;color:var(--inv-primary);letter-spacing:-0.02em}
+.inv-company .tagline{font-size:12px;color:var(--inv-muted);margin-top:3px}
 .inv-meta{text-align:right}
-.inv-badge{display:inline-block;background:var(--inv-primary);color:#fff;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:4px 12px;border-radius:6px;margin-bottom:12px}
-.inv-meta-row{display:flex;justify-content:flex-end;gap:16px;font-size:13px;margin-bottom:4px}
-.inv-meta-row span:first-child{color:var(--inv-muted)}
-.inv-meta-row span:last-child{font-weight:600;color:var(--inv-text)}
-.inv-grid{display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-bottom:32px}
+.inv-badge{display:inline-block;background:linear-gradient(135deg,#548888 0%,#3d6e6e 100%);color:#fff;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:5px 14px;border-radius:6px;margin-bottom:14px}
+.inv-meta-row{display:flex;justify-content:flex-end;gap:12px;font-size:13px;margin-bottom:5px}
+.inv-meta-row span:first-child{color:var(--inv-muted);font-weight:500}
+.inv-meta-row span:last-child{font-weight:600;color:var(--inv-text);font-variant-numeric:tabular-nums}
+.inv-divider{height:1px;background:linear-gradient(90deg,transparent,var(--inv-border),transparent);margin:0 0 28px}
+.inv-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:28px}
 @media(max-width:640px){.inv-grid{grid-template-columns:1fr}.inv-header{flex-direction:column}.inv-meta{text-align:left}.inv-meta-row{justify-content:flex-start}}
-.inv-section-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--inv-muted);margin-bottom:10px}
-.bill-to strong{font-size:14px;font-weight:600;color:var(--inv-text)}
+.inv-section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--inv-muted);margin-bottom:10px}
+.bill-to{background:var(--inv-bg);border:1px solid var(--inv-border);border-radius:12px;padding:16px 18px}
+.bill-to strong{font-size:15px;font-weight:600;color:var(--inv-text);display:block}
 .bank-box{background:var(--inv-bg);border:1px solid var(--inv-border);border-radius:12px;padding:16px 18px}
 .bank-box .inv-section-title{color:var(--inv-primary)}
 .bank-row{display:flex;justify-content:space-between;gap:12px;font-size:13px;margin-bottom:6px}
 .bank-row:last-child{margin-bottom:0}
 .bank-row span:first-child{color:var(--inv-muted)}
 .bank-row span:last-child{font-weight:500;color:var(--inv-text);text-align:right;font-variant-numeric:tabular-nums}
-.inv-table-wrap{margin-bottom:28px;border:1px solid var(--inv-border);border-radius:10px;overflow:hidden}
-.inv-table{width:100%;border-collapse:collapse;font-size:13px}
-.inv-table thead tr{background:var(--inv-primary)}
-.inv-table th{padding:11px 16px;text-align:left;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#fff}
-.inv-table th:nth-child(4),.inv-table th:nth-child(5){text-align:right}
-.inv-table tbody tr:nth-child(even){background:var(--inv-bg)}
-.inv-table td{padding:12px 16px;color:var(--inv-text);border-top:1px solid var(--inv-border)}
-.inv-table td:nth-child(4),.inv-table td:nth-child(5){text-align:right;font-variant-numeric:tabular-nums}
-.inv-table td.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
-.inv-totals{display:flex;justify-content:flex-end;margin-bottom:20px}
-.totals-box{width:260px}
-.total-row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px}
+.inv-summary{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:28px}
+@media(max-width:480px){.inv-summary{grid-template-columns:1fr}}
+.inv-stat{background:linear-gradient(165deg,#f8fafa 0%,#f0f5f5 100%);border:1px solid var(--inv-border);border-radius:14px;padding:20px 22px;text-align:center}
+.inv-stat-label{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--inv-muted);margin-bottom:8px}
+.inv-stat-value{font-size:1.75rem;font-weight:700;letter-spacing:-0.03em;line-height:1.1;color:var(--inv-text)}
+.inv-stat-value.gold{color:#b8860b}
+.inv-stat-value.teal{color:var(--inv-primary)}
+.inv-stat-sub{font-size:12px;color:var(--inv-muted);margin-top:6px}
+.inv-line-item{border:1px solid var(--inv-border);border-radius:12px;overflow:hidden;margin-bottom:24px}
+.inv-line-head{display:grid;grid-template-columns:1fr 100px 120px;background:var(--inv-primary);padding:11px 20px;gap:12px}
+.inv-line-head span{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#fff}
+.inv-line-head span:nth-child(2),.inv-line-head span:nth-child(3){text-align:right}
+.inv-line-body{display:grid;grid-template-columns:1fr 100px 120px;padding:16px 20px;gap:12px;align-items:center;background:#fff}
+.inv-line-body span:nth-child(2),.inv-line-body span:nth-child(3){text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.inv-line-desc{font-size:14px;font-weight:500;color:var(--inv-text)}
+.inv-line-desc small{display:block;font-size:12px;font-weight:400;color:var(--inv-muted);margin-top:3px}
+.inv-totals{display:flex;justify-content:flex-end;margin-bottom:8px}
+.totals-box{width:280px;background:var(--inv-bg);border:1px solid var(--inv-border);border-radius:12px;padding:16px 20px}
+.total-row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:10px}
 .total-row span:first-child{color:var(--inv-muted)}
-.total-row span:last-child{font-weight:500}
-.total-final{border-top:1px solid var(--inv-border);padding-top:12px;margin-top:8px;display:flex;justify-content:space-between;align-items:center}
-.total-final span:first-child{font-size:13px;font-weight:600;color:var(--inv-text)}
-.total-badge{background:var(--inv-primary);color:#fff;font-size:15px;font-weight:700;padding:6px 14px;border-radius:8px}
+.total-row span:last-child{font-weight:500;font-variant-numeric:tabular-nums}
+.total-final{border-top:1px solid var(--inv-border);padding-top:14px;margin-top:4px;display:flex;justify-content:space-between;align-items:center}
+.total-final span:first-child{font-size:14px;font-weight:700;color:var(--inv-text)}
+.total-badge{background:linear-gradient(135deg,#548888 0%,#3d6e6e 100%);color:#fff;font-size:16px;font-weight:700;padding:8px 16px;border-radius:8px;letter-spacing:-0.01em}
 .inv-form{padding:20px 24px;background:#f8fafc;border-bottom:1px solid var(--inv-border)}
 .inv-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 @media(max-width:640px){.inv-form-grid{grid-template-columns:1fr}}
@@ -120,8 +129,7 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
   .inv-toolbar,.inv-form{display:none!important}
   .inv-panel{box-shadow:none!important;border-radius:0!important;margin:0!important;max-width:none!important}
   .inv-body{padding:0!important}
-  @page{size:A4;margin:12mm 14mm}
-  tr{page-break-inside:avoid}
+  @page{size:A4;margin:14mm 16mm}
 }
 `;
   const style = document.createElement("style");
@@ -714,37 +722,30 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
     const start = new Date(y, m - 1, 1);
     // Month match uses the same YYYY-MM-DD string as the tables, so no timezone drift at month edges
     const filtered = calls.filter(r => Number(r.payout) > 0 && getRowDate(r.dts).slice(0, 7) === month);
-    const tbody = document.getElementById("invoiceTableBody");
-    tbody.innerHTML = "";
     const now = new Date();
     const invDate = formatDate(now);
     const invNum = `INV-${y}${String(m).padStart(2, "0")}-${invRand || 1000}`;
+    const periodLabel = start.toLocaleString("en-US", { month: "long", year: "numeric" });
+    let subtotal = 0;
+    filtered.forEach(call => { subtotal += Number(call.payout) || 0; });
     document.getElementById("invNumber").textContent = invNum;
     document.getElementById("invDate").textContent = invDate;
-    document.getElementById("invTotalCalls").textContent = filtered.length;
-    document.getElementById("invPeriod").textContent = start.toLocaleString("en-US", { month: "long", year: "numeric" });
+    document.getElementById("invPeriod").textContent = periodLabel;
     document.getElementById("billToName").textContent = buyer;
     document.getElementById("bankNameDisplay").textContent = bankName;
     document.getElementById("accountTitleDisplay").textContent = accountTitle;
     document.getElementById("accountNumberDisplay").textContent = accountNumber;
     document.getElementById("routingDisplay").textContent = routing;
-    let subtotal = 0;
-    filtered.forEach(call => {
-      const payout = Number(call.payout) || 0;
-      subtotal += payout;
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${formatTimestamp(call.dts)}</td>
-        <td class="mono">${formatPhone(call.ani)}</td>
-        <td>${(call.state || "—").toString().toUpperCase()}</td>
-        <td>${formatDuration(call.call_duration_sec)}</td>
-        <td>$${payout.toFixed(2)}</td>`;
-      tbody.appendChild(tr);
-    });
+    document.getElementById("invStatCalls").textContent = filtered.length;
+    document.getElementById("invStatAmount").textContent = "$" + subtotal.toFixed(2);
+    document.getElementById("invLineDesc").textContent = "Billable call services";
+    document.getElementById("invLinePeriod").textContent = periodLabel;
+    document.getElementById("invLineCalls").textContent = filtered.length;
+    document.getElementById("invLineAmount").textContent = "$" + subtotal.toFixed(2);
     document.getElementById("invSubtotal").textContent = "$" + subtotal.toFixed(2);
     document.getElementById("invTotal").textContent = "$" + subtotal.toFixed(2);
   }
-  function closeInvoiceModal() {
+    function closeInvoiceModal() {
     document.getElementById("invoiceModal").classList.remove("open");
     document.body.style.overflow = "";
   }
@@ -1035,10 +1036,10 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
             <div class="inv-badge">INVOICE</div>
             <div class="inv-meta-row"><span>Invoice #</span><span id="invNumber">—</span></div>
             <div class="inv-meta-row"><span>Invoice Date</span><span id="invDate">—</span></div>
-            <div class="inv-meta-row"><span>Total Calls</span><span id="invTotalCalls">0</span></div>
             <div class="inv-meta-row"><span>Billing Period</span><span id="invPeriod">—</span></div>
           </div>
         </div>
+        <div class="inv-divider"></div>
         <div class="inv-grid">
           <div class="bill-to">
             <div class="inv-section-title">Bill To</div>
@@ -1052,19 +1053,29 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
             <div class="bank-row"><span>IBAN / Routing</span><span id="routingDisplay">—</span></div>
           </div>
         </div>
-        <div class="inv-table-wrap">
-          <table class="inv-table">
-            <thead>
-              <tr>
-                <th>Timestamp</th>
-                <th>Phone Number</th>
-                <th>State</th>
-                <th>Duration</th>
-                <th>Payout</th>
-              </tr>
-            </thead>
-            <tbody id="invoiceTableBody"></tbody>
-          </table>
+        <div class="inv-summary">
+          <div class="inv-stat">
+            <div class="inv-stat-label">Total Calls</div>
+            <div class="inv-stat-value teal" id="invStatCalls">0</div>
+            <div class="inv-stat-sub">Billable calls this period</div>
+          </div>
+          <div class="inv-stat">
+            <div class="inv-stat-label">Total Amount</div>
+            <div class="inv-stat-value gold" id="invStatAmount">$0.00</div>
+            <div class="inv-stat-sub">Amount due</div>
+          </div>
+        </div>
+        <div class="inv-line-item">
+          <div class="inv-line-head">
+            <span>Description</span>
+            <span>Calls</span>
+            <span>Amount</span>
+          </div>
+          <div class="inv-line-body">
+            <span class="inv-line-desc"><span id="invLineDesc">Billable call services</span><small id="invLinePeriod">—</small></span>
+            <span id="invLineCalls">0</span>
+            <span id="invLineAmount">$0.00</span>
+          </div>
         </div>
         <div class="inv-totals">
           <div class="totals-box">
@@ -1079,7 +1090,7 @@ tbody tr:hover{background:rgba(61,154,154,.04)}
     </div>
   </div>
   `;
-  /* ---------- Expose handlers used by inline onclick/onchange ---------- */
+
   window.doLogin = doLogin;
   window.doLogout = doLogout;
   window.doRefresh = doRefresh;
